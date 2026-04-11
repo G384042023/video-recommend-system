@@ -61,7 +61,7 @@ let hasSelected = false;
 // ==========================================
 
 async function loadExcel() {
-    const response = await fetch("data.xlsx");
+    const response = await fetch("./data.xlsx");
     const data = await response.arrayBuffer();
 
     const workbook = XLSX.read(data, { type: "array" });
@@ -222,46 +222,51 @@ function showResult() {
 // ==========================================
 
 async function loadExcel() {
-    const response = await fetch("data.xlsx");
-    const data = await response.arrayBuffer();
+    try {
+        const response = await fetch("./data.xlsx");
 
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        console.log("response:", response);
 
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    for (let i = 1; i <= 10; i++) {
-
-        let row = json[i];
-
-        // ⭐ 防止空行崩溃
-        if (!row || row.length < 10) {
-            console.log("跳过异常行:", i, row);
-            continue;
+        if (!response.ok) {
+            throw new Error("Excel加载失败: " + response.status);
         }
 
-        videos.push({
-            id: row[2],                // YouTubeID
-            title: row[1],             // 标题
-            vector: row.slice(3, 10).map(Number) // 7维向量
-        });
+        const data = await response.arrayBuffer();
+
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        for (let i = 1; i <= 10; i++) {
+            let row = json[i];
+
+            if (!row || row.length < 10) {
+                console.log("跳过异常行:", i, row);
+                continue;
+            }
+
+            videos.push({
+                id: row[2],
+                title: row[1],
+                vector: row.slice(3, 10).map(Number)
+            });
+        }
+
+        console.log("读取完成:", videos);
+
+        remaining = [...videos];
+
+        document.getElementById("roundTitle").innerText =
+            "読み込み完了・開始";
+
+        loadRound();
+
+    } catch (e) {
+        console.error("❌错误:", e);
+        document.getElementById("roundTitle").innerText =
+            "❌ Excel読み込み失敗（F12見て）";
     }
-
-    // ⭐ 读取结果确认
-    console.log("读取完成:", videos);
-
-    // ⭐ 检查是否是单位向量（非常重要）
-    videos.forEach(v => {
-        let norm = Math.sqrt(v.vector.reduce((s,x)=>s+x*x,0));
-        console.log(v.title, "ノルム:", norm);
-    });
-
-    remaining = [...videos];
-
-    document.getElementById("roundTitle").innerText =
-        "読み込み完了・開始";
-
-    loadRound();
 }
 </script>
 
