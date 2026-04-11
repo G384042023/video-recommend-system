@@ -53,25 +53,9 @@ iframe {
 let videos = [];
 let remaining = [];
 let selectedVideos = [];
+let currentGroup = []; // ⭐关键
 let round = 1;
 let hasSelected = false;
-
-// ==========================================
-// ⭐ ① 读取 Excel
-// ==========================================
-
-// ==========================================
-// ⭐ 临时视频ID（你之后可替换真实ID）
-// ==========================================
-
-function getRandomVideoId(i) {
-    const ids = [
-        "4CSOwxhGvmY","W85F-UmnbF4","xfY6BTVhzV0","QOsuzYhiExY",
-        "USUa0A3IJNA","fv_HObWMFKU","j9V78UbdzWI","dQw4w9WgXcQ",
-        "9AjkUyX0rVw","l0GN40EL1VU"
-    ];
-    return ids[i-1];
-}
 
 // ==========================================
 // UI
@@ -94,8 +78,11 @@ function getRandomGroup() {
     return group;
 }
 
-function selectVideo(video) {
+// ⭐ 修复：用 index
+function selectVideo(index) {
     if (hasSelected) return;
+
+    const video = currentGroup[index];
 
     selectedVideos.push(video);
     hasSelected = true;
@@ -118,9 +105,9 @@ function loadRound() {
 
     document.getElementById("videoList").innerHTML = "";
 
-    let group = getRandomGroup();
+    currentGroup = getRandomGroup(); // ⭐关键
 
-    group.forEach(video => {
+    currentGroup.forEach((video, index) => {
         let div = document.createElement("div");
         div.className = "video-card";
 
@@ -128,9 +115,7 @@ function loadRound() {
             <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
                  onclick="playVideo('${video.id}')">
             <p>${video.title}</p>
-            <button onclick='selectVideo(${JSON.stringify(video)})'>
-                選択
-            </button>
+            <button onclick="selectVideo(${index})">選択</button>
         `;
 
         document.getElementById("videoList").appendChild(div);
@@ -138,7 +123,7 @@ function loadRound() {
 }
 
 // ==========================================
-// ⭐ 用户向量计算（完全对应Excel）
+// ⭐ 用户向量计算
 // ==========================================
 
 function calcUserVector(selectedVideos) {
@@ -184,14 +169,12 @@ function showResult() {
 }
 
 // ==========================================
-// 启动
+// ⭐ Excel读取（最终版）
 // ==========================================
 
 async function loadExcel() {
     try {
         const response = await fetch("./data.xlsx");
-
-        console.log("response:", response);
 
         if (!response.ok) {
             throw new Error("Excel加载失败: " + response.status);
@@ -234,7 +217,14 @@ async function loadExcel() {
             "❌ Excel読み込み失敗（F12見て）";
     }
 }
-</script>
+
+// ==========================================
+// 启动
+// ==========================================
+
 loadExcel();
+
+</script>
+
 </body>
 </html>
