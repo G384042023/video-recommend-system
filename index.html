@@ -60,40 +60,6 @@ let hasSelected = false;
 // ⭐ ① 读取 Excel
 // ==========================================
 
-async function loadExcel() {
-    const response = await fetch("./data.xlsx");
-    const data = await response.arrayBuffer();
-
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-    // 假设：
-    // 第15行开始是数据（根据你截图）
-    // 每行：悲しい〜嬉しい（7列）
-
-    for (let i = 1; i <= 10; i++) {
-
-        let row = json[i];
-
-
-        videos.push({
-            id: row[2],        // YouTubeID
-            title: row[1],     // 标题
-            vector: row.slice(3, 10).map(Number)
-        });
-
-    }
-
-    remaining = [...videos];
-
-    document.getElementById("roundTitle").innerText =
-        "読み込み完了・開始";
-
-    loadRound();
-}
-
 // ==========================================
 // ⭐ 临时视频ID（你之后可替换真实ID）
 // ==========================================
@@ -269,6 +235,6 @@ async function loadExcel() {
     }
 }
 </script>
-
+loadExcel();
 </body>
 </html>
