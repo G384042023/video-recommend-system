@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>動画推薦システム</title>
+
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+}
+
+.video-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.video-card {
+    width: 250px;
+}
+
+img {
+    width: 100%;
+    cursor: pointer;
+}
+
+button {
+    margin-top: 5px;
+    padding: 5px 10px;
+}
+</style>
+
+</head>
+
+<body>
+
+<h2 id="roundTitle">第1ラウンド：最も興味のある動画を選択してください</h2>
+
+<div class="video-container" id="videoList"></div>
+
+<!-- 播放器 -->
+<div style="margin-top:30px;">
+    <iframe id="player"
+        width="560"
+        height="315"
+        src=""
+        frameborder="0"
+        allowfullscreen>
+    </iframe>
+</div>
+
+<script>
+
+// ====== 你的视频数据（改这里）======
+const videos = [
+    {id:"dQw4w9WgXcQ", title:"Video A"},
+    {id:"3JZ_D3ELwOQ", title:"Video B"},
+    {id:"L_jWHffIx5E", title:"Video C"},
+    {id:"Zi_XLOBDo_Y", title:"Video D"},
+    {id:"fJ9rUzIMcZQ", title:"Video E"},
+    {id:"kJQP7kiw5Fk", title:"Video F"},
+    {id:"RgKAFK5djSk", title:"Video G"},
+    {id:"OPf0YbXqDm0", title:"Video H"},
+    {id:"YQHsXMglC9A", title:"Video I"}
+];
+
+// ================================
+
+let round = 1;
+let selectedVideos = [];
+
+// 打乱数组
+function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
+
+// 当前轮的视频
+let shuffled = shuffle([...videos]);
+
+function loadRound() {
+
+    if (round > 3) {
+        showResult();
+        return;
+    }
+
+    document.getElementById("roundTitle").innerText =
+        "第" + round + "ラウンド：最も興味のある動画を選択してください";
+
+    const container = document.getElementById("videoList");
+    container.innerHTML = "";
+
+    let currentVideos = shuffled.slice((round-1)*3, round*3);
+
+    currentVideos.forEach(video => {
+
+        let div = document.createElement("div");
+        div.className = "video-card";
+
+        div.innerHTML = `
+            <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
+                 onclick="playVideo('${video.id}')">
+            <p onclick="playVideo('${video.id}')">${video.title}</p>
+            <button onclick="selectVideo('${video.id}')">選択</button>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+function playVideo(id) {
+    document.getElementById("player").src =
+        "https://www.youtube.com/embed/" + id;
+}
+
+function selectVideo(id) {
+    selectedVideos.push(id);
+    round++;
+    loadRound();
+}
+
+function showResult() {
+    document.body.innerHTML = `
+        <h2>選択完了！</h2>
+        <p>あなたが選んだ動画：</p>
+        <p>${selectedVideos.join("<br>")}</p>
+    `;
+}
+
+// 初始化
+loadRound();
+
+</script>
+
+</body>
+</html>
