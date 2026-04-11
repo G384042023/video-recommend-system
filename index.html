@@ -160,6 +160,20 @@ function showResult() {
 
     console.log("Excel读取向量:", videos);
     console.log("用户选择:", selectedVideos);
+
+    // ⭐ 情感名称
+    const emotionNames = ["悲しい","不安","怒り","嫌悪","信頼","驚き","嬉しい"];
+
+    // ⭐ 转成对象
+    let obj = {};
+    userVec.forEach((value, index) => {
+        obj[emotionNames[index]] = value;
+    });
+
+    // ⭐ 表格输出（重点）
+    console.table(obj);
+
+    // 原来的也可以保留
     console.log("最终ユーザベクトル:", userVec);
 
     let norm = Math.sqrt(userVec.reduce((s,v)=>s+v*v,0));
@@ -170,12 +184,10 @@ function showResult() {
 
     document.getElementById("videoList").innerHTML = "";
 
-    // ⭐加这一行（关键）
     const player = document.getElementById("player");
     player.src = "";
-    player.style.display = "none"; // ⭐隐藏掉
+    player.style.display = "none";
 }
-
 // ==========================================
 // ⭐ Excel读取（最终版）
 // ==========================================
