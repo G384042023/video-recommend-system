@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<link rel="icon" href="data:,">
+    <link rel="icon" href="data:,">
 <meta charset="UTF-8">
 <title>動画推薦システム（Excel連携）</title>
 
@@ -30,12 +30,10 @@ img {
     cursor: pointer;
 }
 
-/* ⭐ 改这里（防止视频变形） */
 iframe {
     width: 100%;
     max-width: 560px;
-    aspect-ratio: 16 / 9;
-    border: none;
+    height: 315px;
     margin-top: 20px;
 }
 </style>
@@ -56,7 +54,7 @@ iframe {
 let videos = [];
 let remaining = [];
 let selectedVideos = [];
-let currentGroup = [];
+let currentGroup = []; // ⭐关键
 let round = 1;
 let hasSelected = false;
 
@@ -66,8 +64,9 @@ let hasSelected = false;
 
 function playVideo(id) {
     const player = document.getElementById("player");
+
     player.src = "https://www.youtube.com/embed/" + id;
-    player.style.display = "block";
+    player.style.display = "block"; // ⭐显示出来
 }
 
 function getRandomGroup() {
@@ -82,15 +81,16 @@ function getRandomGroup() {
     return group;
 }
 
+// ⭐ 修复：用 index
 function selectVideo(index) {
     if (hasSelected) return;
 
     const video = currentGroup[index];
+
     selectedVideos.push(video);
-
     hasSelected = true;
-    round++;
 
+    round++;
     loadRound();
 }
 
@@ -108,7 +108,7 @@ function loadRound() {
 
     document.getElementById("videoList").innerHTML = "";
 
-    currentGroup = getRandomGroup();
+    currentGroup = getRandomGroup(); // ⭐关键
 
     currentGroup.forEach((video, index) => {
         let div = document.createElement("div");
@@ -126,12 +126,13 @@ function loadRound() {
 }
 
 // ==========================================
-// 用户向量计算
+// ⭐ 用户向量计算
 // ==========================================
 
 function calcUserVector(selectedVideos) {
 
     const weights = [0.2, 0.3, 0.5];
+
     let result = new Array(7).fill(0);
 
     for (let i = 0; i < 3; i++) {
@@ -159,15 +160,7 @@ function showResult() {
 
     console.log("Excel读取向量:", videos);
     console.log("用户选择:", selectedVideos);
-
-    const emotionNames = ["悲しい","不安","怒り","嫌悪","信頼","驚き","嬉しい"];
-
-    let obj = {};
-    userVec.forEach((value, index) => {
-        obj[emotionNames[index]] = value;
-    });
-
-    console.table(obj);
+    console.log("最终ユーザベクトル:", userVec);
 
     let norm = Math.sqrt(userVec.reduce((s,v)=>s+v*v,0));
     console.log("ノルム:", norm);
@@ -177,13 +170,14 @@ function showResult() {
 
     document.getElementById("videoList").innerHTML = "";
 
+    // ⭐加这一行（关键）
     const player = document.getElementById("player");
     player.src = "";
-    player.style.display = "none";
+    player.style.display = "none"; // ⭐隐藏掉
 }
 
 // ==========================================
-// Excel读取（关键修复点）
+// ⭐ Excel读取（最终版）
 // ==========================================
 
 async function loadExcel() {
@@ -204,21 +198,15 @@ async function loadExcel() {
         for (let i = 1; i <= 10; i++) {
             let row = json[i];
 
-            if (!row || row.length < 10) continue;
+            if (!row || row.length < 10) {
+                console.log("跳过异常行:", i, row);
+                continue;
+            }
 
-            // ⭐⭐⭐ 核心修复：手动指定顺序
             videos.push({
                 id: row[2],
                 title: row[1],
-                vector: [
-                    Number(row[3]), // 悲しい
-                    Number(row[4]), // 不安
-                    Number(row[5]), // 怒り
-                    Number(row[6]), // 嫌悪
-                    Number(row[7]), // 信頼
-                    Number(row[8]), // 驚き
-                    Number(row[9])  // 嬉しい
-                ]
+                vector: row.slice(3, 10).map(Number)
             });
         }
 
@@ -238,7 +226,10 @@ async function loadExcel() {
     }
 }
 
+// ==========================================
 // 启动
+// ==========================================
+
 loadExcel();
 
 </script>
