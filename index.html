@@ -45,7 +45,7 @@ iframe {
 
 <div class="video-container" id="videoList"></div>
 
-<iframe id="player"></iframe>
+<iframe id="player" style="display:none;"></iframe>
 
 <script>
 
@@ -62,9 +62,11 @@ let hasSelected = false;
 // ==========================================
 
 function playVideo(id) {
-    document.getElementById("player").src =
-        "https://www.youtube.com/embed/" + id;
-}
+    const player = document.getElementById("player");
+
+    player.src = "https://www.youtube.com/embed/" + id;
+    player.style.display = "block"; // ⭐显示出来
+}}
 
 function getRandomGroup() {
     let group = [];
@@ -168,7 +170,9 @@ function showResult() {
     document.getElementById("videoList").innerHTML = "";
 
     // ⭐加这一行（关键）
-    document.getElementById("player").src = "";
+    const player = document.getElementById("player");
+    player.src = "";
+    player.style.display = "none"; // ⭐隐藏掉
 }
 
 // ==========================================
