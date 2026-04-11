@@ -8,22 +8,36 @@
 body {
     font-family: Arial;
     text-align: center;
+    margin: 0;
+    padding: 20px;
 }
 
+/* ⭐关键：允许换行 */
 .video-container {
     display: flex;
     justify-content: center;
     gap: 20px;
     margin-top: 20px;
+    flex-wrap: wrap;
 }
 
+/* 防止被压缩 */
 .video-card {
     width: 250px;
+    flex-shrink: 0;
 }
 
 img {
     width: 100%;
     cursor: pointer;
+}
+
+/* ⭐播放器自适应 */
+iframe {
+    width: 100%;
+    max-width: 560px;
+    height: 315px;
+    margin-top: 30px;
 }
 
 button {
@@ -47,10 +61,8 @@ button:disabled {
 <div class="video-container" id="videoList"></div>
 
 <!-- 播放器 -->
-<div style="margin-top:30px;">
+<div>
     <iframe id="player"
-        width="560"
-        height="315"
         src=""
         frameborder="0"
         allowfullscreen>
@@ -77,10 +89,10 @@ const videos = [
 
 let round = 1;
 let selectedVideos = [];
-let remaining = [...videos];   // 剩余视频池
+let remaining = [...videos];
 let hasSelected = false;
 
-// ====== 动态分组核心 ======
+// ⭐动态分组（每轮随机抽3个且不重复）
 function getRandomGroup() {
     let group = [];
 
@@ -89,14 +101,11 @@ function getRandomGroup() {
 
         let index = Math.floor(Math.random() * remaining.length);
         group.push(remaining[index]);
-
-        // 从池中删除，保证不重复
         remaining.splice(index, 1);
     }
 
     return group;
 }
-// =========================
 
 function loadRound() {
 
@@ -116,7 +125,7 @@ function loadRound() {
     const container = document.getElementById("videoList");
     container.innerHTML = "";
 
-    let currentVideos = getRandomGroup();   // ⭐动态抽取
+    let currentVideos = getRandomGroup();
 
     currentVideos.forEach(video => {
 
@@ -126,50 +135,4 @@ function loadRound() {
         div.innerHTML = `
             <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
                  onclick="playVideo('${video.id}')">
-            <p onclick="playVideo('${video.id}')">${video.title}</p>
-            <button onclick="selectVideo('${video.id}')">選択</button>
-        `;
-
-        container.appendChild(div);
-    });
-}
-
-function playVideo(id) {
-    document.getElementById("player").src =
-        "https://www.youtube.com/embed/" + id;
-}
-
-function selectVideo(id) {
-
-    if (hasSelected) return;
-
-    hasSelected = true;
-
-    let video = videos.find(v => v.id === id);
-    selectedVideos.push(video);
-
-    document.querySelectorAll("button").forEach(btn => btn.disabled = true);
-
-    setTimeout(() => {
-        round++;
-        loadRound();
-    }, 500);
-}
-
-function showResult() {
-    document.body.innerHTML = `
-        <h2>選択完了！</h2>
-        <p>あなたが選んだ動画：</p>
-        <ul>
-            ${selectedVideos.map(v => `<li>${v.title}</li>`).join("")}
-        </ul>
-    `;
-}
-
-// 初始化
-loadRound();
-
-</script>
-
-</body>
-</html>
+            <p onclick="playVideo
