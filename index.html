@@ -157,6 +157,12 @@
 
             player.src = "";
             overlay.style.display = "none";
+
+            // ⭐ 新增：关闭视频后进入下一轮
+            if (hasSelected) {
+                round++;
+                loadRound();
+            }
         }
 
         // =====================
@@ -218,12 +224,10 @@
                 div.className = "video-card";
 
                 div.innerHTML = `
-            <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
-                onclick="selectVideo(${index})">
-                onclick="playVideo('${video.id}')">
-            <p><b>${video.label}</b>：${video.title}</p>
-            
-        `;
+                    <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
+                         onclick="selectVideo(${index})">
+                    <p><b>${video.label}</b>：${video.title}</p>
+                `;
 
                 document.getElementById("videoList").appendChild(div);
             });
