@@ -232,30 +232,37 @@
         }
 
         // =====================
-        // ⭐ 雷达图绘制
+        // ⭐ 双雷达图（用户 vs Top1）
         // =====================
         let radarChart = null;
 
-        function drawRadarChart(userVec) {
+        function drawRadarChart(userVec, topVideoVec) {
 
             const ctx = document.getElementById("radarChart");
 
             if (radarChart) {
-                radarChart.destroy(); // 防止重复绘制
+                radarChart.destroy();
             }
 
             radarChart = new Chart(ctx, {
                 type: 'radar',
                 data: {
                     labels: emotionLabels,
-                    datasets: [{
-                        label: 'ユーザ感情ベクトル',
-                        data: userVec,
-                        fill: true
-                    }]
+                    datasets: [
+                        {
+                            label: 'ユーザ',
+                            data: userVec,
+                            fill: true
+                        },
+                        {
+                            label: '推薦Top1',
+                            data: topVideoVec,
+                            fill: true
+                        }
+                    ]
                 },
                 options: {
-                    responsive: false,   // ⭐关键
+                    responsive: false,
                     scales: {
                         r: {
                             min: 0,
@@ -299,7 +306,7 @@
         function showResult() {
 
             const userVec = calcUserVector(selectedVideos);
-            drawRadarChart(userVec);
+            drawRadarChart(userVec, top1.video.vector);
 
             // =====================
             // ⭐ 推荐计算
@@ -314,6 +321,7 @@
             results.sort((a, b) => b.score - a.score);
 
             let top5 = results.slice(0, 5);
+            let top1 = top5[0]; // ⭐ 第一名
 
             // =====================
             // ⭐ 显示到页面
