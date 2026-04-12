@@ -306,7 +306,7 @@
         function showResult() {
 
             const userVec = calcUserVector(selectedVideos);
-            drawRadarChart(userVec, top1.video.vector);
+            
 
             // =====================
             // ⭐ 推荐计算
@@ -322,6 +322,8 @@
 
             let top5 = results.slice(0, 5);
             let top1 = top5[0]; // ⭐ 第一名
+
+            drawRadarChart(userVec, top1.video.vector);
 
             // =====================
             // ⭐ 显示到页面
