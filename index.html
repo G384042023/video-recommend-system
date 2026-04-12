@@ -87,6 +87,11 @@
             width: 300px;
             text-align: left;
         }
+
+        #radarChart {
+            max-width: 300px;
+            margin: 20px auto;
+        }
     </style>
 </head>
 
@@ -103,7 +108,7 @@
     <!-- ===================== -->
     <div class="video-container" id="videoList"></div>
 
-    <canvas id="radarChart" width="400" height="400"></canvas>
+    <canvas id="radarChart" width="300" height="300"></canvas>
     <div id="resultList"></div> <!-- ⭐ 新增 -->
 
     <!-- ===================== -->
@@ -250,6 +255,7 @@
                     }]
                 },
                 options: {
+                    responsive: false,   // ⭐关键
                     scales: {
                         r: {
                             min: 0,
