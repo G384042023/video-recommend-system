@@ -178,6 +178,9 @@
         // 用户向量计算（保持原日志）
         // ==========================================
 
+        // ⭐ 情感标签（新增）
+        const emotionLabels = ["悲しい", "不安", "怒り", "嫌悪", "信頼", "驚き", "嬉しい"];
+
         function calcUserVector(selectedVideos) {
 
             const weights = [0.2, 0.3, 0.5];
@@ -212,7 +215,9 @@
 
             console.log("Excel读取向量:", videos);
             console.log("用户选择:", selectedVideos);
-            console.log("最终ユーザベクトル:", userVec);
+
+            const labeledVec = userVec.map((v, i) => `${emotionLabels[i]}: ${v}`);
+            console.log("最终ユーザベクトル:", labeledVec);
 
             let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
             console.log("ノルム:", norm);
