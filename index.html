@@ -1,281 +1,287 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
-<link rel="icon" href="data:,">
-<meta charset="UTF-8">
-<title>動画推薦システム（Excel連携）</title>
+    <link rel="icon" href="data:,">
+    <meta charset="UTF-8">
+    <title>動画推薦システム（Excel連携）</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-<style>
-body {
-    font-family: Arial;
-    text-align: center;
-    padding: 20px;
-}
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            padding: 20px;
+        }
 
-.video-container {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    flex-wrap: wrap;
-}
+        .video-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
 
-.video-card {
-    width: 250px;
-}
+        .video-card {
+            width: 250px;
+        }
 
-img {
-    width: 100%;
-    cursor: pointer;
-}
+        img {
+            width: 100%;
+            cursor: pointer;
+        }
 
-/* ===== 弹窗播放器 ===== */
+        /* ===== 弹窗播放器 ===== */
 
-#overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.8);
-    display: none;
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
 
-    justify-content: center;
-    align-items: center;
+            justify-content: center;
+            align-items: center;
 
-    z-index: 1000;
-}
+            z-index: 1000;
+        }
 
-#videoModal {
-    width: 80%;
-    max-width: 800px;
-}
+        #videoModal {
+            width: 80%;
+            max-width: 800px;
+        }
 
-#videoModal iframe {
-    width: 100%;
-    height: 450px;
-}
+        #videoModal iframe {
+            width: 100%;
+            height: 450px;
+        }
 
-#closeBtn {
-    color: white;
-    font-size: 30px;
-    cursor: pointer;
-    position: absolute;
-    top: 20px;
-    right: 40px;
-}
-</style>
+        #closeBtn {
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            position: absolute;
+            top: 20px;
+            right: 40px;
+        }
+    </style>
 </head>
 
 <body>
 
-<h2 id="roundTitle">Excel読み込み中...</h2>
-<p id="progress"></p>
+    <h2 id="roundTitle">Excel読み込み中...</h2>
+    <p id="progress"></p>
 
-<div class="video-container" id="videoList"></div>
+    <div class="video-container" id="videoList"></div>
 
-<!-- 弹窗播放器 -->
-<div id="overlay">
-    <div id="closeBtn" onclick="closeVideo()">✕</div>
-    <div id="videoModal">
-        <iframe id="player" frameborder="0" allowfullscreen></iframe>
+    <!-- 弹窗播放器 -->
+    <div id="overlay">
+        <div id="closeBtn" onclick="closeVideo()">✕</div>
+        <div id="videoModal">
+            <iframe id="player" frameborder="0" allowfullscreen></iframe>
+        </div>
     </div>
-</div>
 
-<script>
+    <script>
 
-// ===== 全局变量 =====
-let videos = [];
-let remaining = [];
-let selectedVideos = [];
-let currentGroup = [];
-let round = 1;
-let hasSelected = false;
+        // ===== 全局变量 =====
+        let videos = [];
+        let remaining = [];
+        let selectedVideos = [];
+        let currentGroup = [];
+        let round = 1;
+        let hasSelected = false;
 
-// ==========================================
-// 播放
-// ==========================================
+        // ==========================================
+        // 播放
+        // ==========================================
 
-function playVideo(id) {
-    const overlay = document.getElementById("overlay");
-    const player = document.getElementById("player");
+        function playVideo(id) {
+            const overlay = document.getElementById("overlay");
+            const player = document.getElementById("player");
 
-    player.src = "https://www.youtube.com/embed/" + id;
-    overlay.style.display = "flex";
-}
+            player.src = "https://www.youtube.com/embed/" + id;
+            overlay.style.display = "flex";
+        }
 
-function closeVideo() {
-    const overlay = document.getElementById("overlay");
-    const player = document.getElementById("player");
+        function closeVideo() {
+            const overlay = document.getElementById("overlay");
+            const player = document.getElementById("player");
 
-    player.src = "";
-    overlay.style.display = "none";
-}
+            player.src = "";
+            overlay.style.display = "none";
+        }
 
-// ==========================================
+        // ==========================================
 
-function getRandomGroup() {
-    let group = [];
+        function getRandomGroup() {
+            let group = [];
 
-    for (let i = 0; i < 3; i++) {
-        let index = Math.floor(Math.random() * remaining.length);
-        group.push(remaining[index]);
-        remaining.splice(index, 1);
-    }
+            for (let i = 0; i < 3; i++) {
+                let index = Math.floor(Math.random() * remaining.length);
+                group.push(remaining[index]);
+                remaining.splice(index, 1);
+            }
 
-    return group;
-}
+            return group;
+        }
 
-function selectVideo(index) {
-    if (hasSelected) return;
+        function selectVideo(index) {
+            if (hasSelected) return;
 
-    const video = currentGroup[index];
+            const video = currentGroup[index];
 
-    selectedVideos.push(video);
-    hasSelected = true;
+            console.log("選択された動画番号:", video.label);
 
-    round++;
-    loadRound();
-}
+            selectedVideos.push(video);
+            hasSelected = true;
 
-// ⭐ 動画A/B/C 标签
-const labels = ["動画A", "動画B", "動画C"];
+            round++;
+            loadRound();
+        }
 
-function loadRound() {
 
-    if (round > 3) {
-        showResult();
-        return;
-    }
+        function loadRound() {
 
-    hasSelected = false;
+            if (round > 3) {
+                showResult();
+                return;
+            }
 
-    document.getElementById("roundTitle").innerText =
-        "第" + round + "ラウンド";
+            hasSelected = false;
 
-    document.getElementById("videoList").innerHTML = "";
+            document.getElementById("roundTitle").innerText =
+                "第" + round + "ラウンド";
 
-    currentGroup = getRandomGroup();
+            document.getElementById("videoList").innerHTML = "";
 
-    currentGroup.forEach((video, index) => {
-        let div = document.createElement("div");
-        div.className = "video-card";
+            currentGroup = getRandomGroup();
 
-        div.innerHTML = `
+            currentGroup.forEach((video, index) => {
+                let div = document.createElement("div");
+                div.className = "video-card";
+
+                div.innerHTML = `
             <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
                  onclick="playVideo('${video.id}')">
-            <p><b>${labels[index]}</b>：${video.title}</p>
+            <p><b>${video.label}</b>：${video.title}</p>
             <button onclick="selectVideo(${index})">選択</button>
         `;
 
-        document.getElementById("videoList").appendChild(div);
-    });
-}
-
-// ==========================================
-// 用户向量计算（保持原日志）
-// ==========================================
-
-function calcUserVector(selectedVideos) {
-
-    const weights = [0.2, 0.3, 0.5];
-
-    let result = new Array(7).fill(0);
-
-    for (let i = 0; i < 3; i++) {
-        for (let j = 0; j < 7; j++) {
-            result[j] += selectedVideos[i].vector[j] * weights[i];
-        }
-    }
-
-    let norm = Math.sqrt(result.reduce((s,v)=>s+v*v,0));
-
-    for (let j = 0; j < 7; j++) {
-        result[j] /= norm;
-    }
-
-    return result;
-}
-
-// ==========================================
-// 结果（⭐日志完全恢复）
-// ==========================================
-
-function showResult() {
-
-    const userVec = calcUserVector(selectedVideos);
-
-    console.log("Excel读取向量:", videos);
-    console.log("用户选择:", selectedVideos);
-    console.log("最终ユーザベクトル:", userVec);
-
-    let norm = Math.sqrt(userVec.reduce((s,v)=>s+v*v,0));
-    console.log("ノルム:", norm);
-
-    document.getElementById("roundTitle").innerText =
-        "ユーザベクトル完成（F12確認）";
-
-    document.getElementById("videoList").innerHTML = "";
-
-    closeVideo();
-}
-
-// ==========================================
-// Excel读取（日志保留）
-// ==========================================
-
-async function loadExcel() {
-    try {
-        const response = await fetch("./data.xlsx");
-
-        if (!response.ok) {
-            throw new Error("Excel加载失败: " + response.status);
-        }
-
-        const data = await response.arrayBuffer();
-
-        const workbook = XLSX.read(data, { type: "array" });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-        for (let i = 1; i <= 10; i++) {
-            let row = json[i];
-
-            if (!row || row.length < 10) {
-                console.log("跳过异常行:", i, row);
-                continue;
-            }
-
-            videos.push({
-                id: row[2],
-                title: row[1],
-                vector: row.slice(3, 10).map(Number)
+                document.getElementById("videoList").appendChild(div);
             });
         }
 
-        console.log("读取完成:", videos);
+        // ==========================================
+        // 用户向量计算（保持原日志）
+        // ==========================================
 
-        remaining = [...videos];
+        function calcUserVector(selectedVideos) {
 
-        document.getElementById("roundTitle").innerText =
-            "読み込み完了・開始";
+            const weights = [0.2, 0.3, 0.5];
 
-        loadRound();
+            let result = new Array(7).fill(0);
 
-    } catch (e) {
-        console.error("❌错误:", e);
-        document.getElementById("roundTitle").innerText =
-            "❌ Excel読み込み失敗（F12見て）";
-    }
-}
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 7; j++) {
+                    result[j] += selectedVideos[i].vector[j] * weights[i];
+                }
+            }
 
-// ==========================================
+            let norm = Math.sqrt(result.reduce((s, v) => s + v * v, 0));
 
-loadExcel();
+            for (let j = 0; j < 7; j++) {
+                result[j] /= norm;
+            }
 
-</script>
+            return result;
+        }
+
+        // ==========================================
+        // 结果（⭐日志完全恢复）
+        // ==========================================
+
+        function showResult() {
+
+            const userVec = calcUserVector(selectedVideos);
+
+            const selectedLabels = selectedVideos.map(v => v.label);
+            console.log("ユーザ選択:", selectedLabels.join(", "));
+
+            console.log("Excel读取向量:", videos);
+            console.log("用户选择:", selectedVideos);
+            console.log("最终ユーザベクトル:", userVec);
+
+            let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
+            console.log("ノルム:", norm);
+
+            document.getElementById("roundTitle").innerText =
+                "ユーザベクトル完成（F12確認）";
+
+            document.getElementById("videoList").innerHTML = "";
+
+            closeVideo();
+        }
+
+        // ==========================================
+        // Excel读取（日志保留）
+        // ==========================================
+
+        async function loadExcel() {
+            try {
+                const response = await fetch("./data.xlsx");
+
+                if (!response.ok) {
+                    throw new Error("Excel加载失败: " + response.status);
+                }
+
+                const data = await response.arrayBuffer();
+
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                for (let i = 1; i <= 10; i++) {
+                    let row = json[i];
+
+                    if (!row || row.length < 10) {
+                        console.log("跳过异常行:", i, row);
+                        continue;
+                    }
+
+                    videos.push({
+                        label: "動画" + row[0],
+                        id: row[2],
+                        title: row[1],
+                        vector: row.slice(3, 10).map(Number)
+                    });
+                }
+
+                console.log("读取完成:", videos);
+
+                remaining = [...videos];
+
+                document.getElementById("roundTitle").innerText =
+                    "読み込み完了・開始";
+
+                loadRound();
+
+            } catch (e) {
+                console.error("❌错误:", e);
+                document.getElementById("roundTitle").innerText =
+                    "❌ Excel読み込み失敗（F12見て）";
+            }
+        }
+
+        // ==========================================
+
+        loadExcel();
+
+    </script>
 
 </body>
+
 </html>
