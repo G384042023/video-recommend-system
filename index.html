@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <link rel="icon" href="data:,">
+<link rel="icon" href="data:,">
 <meta charset="UTF-8">
 <title>動画推薦システム（Excel連携）</title>
 
@@ -14,6 +14,7 @@ body {
     padding: 20px;
 }
 
+/* 视频列表 */
 .video-container {
     display: flex;
     justify-content: center;
@@ -30,11 +31,40 @@ img {
     cursor: pointer;
 }
 
-iframe {
+/* ===== ⭐ 弹窗播放器（关键） ===== */
+
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    max-width: 560px;
-    height: 315px;
-    margin-top: 20px;
+    height: 100%;
+    background: rgba(0,0,0,0.8);
+    display: none;
+
+    justify-content: center;
+    align-items: center;
+
+    z-index: 1000;
+}
+
+#videoModal {
+    width: 80%;
+    max-width: 800px;
+}
+
+#videoModal iframe {
+    width: 100%;
+    height: 450px;
+}
+
+#closeBtn {
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+    position: absolute;
+    top: 20px;
+    right: 40px;
 }
 </style>
 </head>
@@ -46,7 +76,13 @@ iframe {
 
 <div class="video-container" id="videoList"></div>
 
-<iframe id="player" style="display:none;"></iframe>
+<!-- ⭐ 新：弹窗播放器 -->
+<div id="overlay">
+    <div id="closeBtn" onclick="closeVideo()">✕</div>
+    <div id="videoModal">
+        <iframe id="player" frameborder="0" allowfullscreen></iframe>
+    </div>
+</div>
 
 <script>
 
@@ -54,20 +90,32 @@ iframe {
 let videos = [];
 let remaining = [];
 let selectedVideos = [];
-let currentGroup = []; // ⭐关键
+let currentGroup = [];
 let round = 1;
 let hasSelected = false;
 
 // ==========================================
-// UI
+// ⭐ 播放视频（改造版）
 // ==========================================
 
 function playVideo(id) {
+    const overlay = document.getElementById("overlay");
     const player = document.getElementById("player");
 
     player.src = "https://www.youtube.com/embed/" + id;
-    player.style.display = "block"; // ⭐显示出来
+    overlay.style.display = "flex"; // ⭐居中显示
 }
+
+// ⭐ 关闭视频
+function closeVideo() {
+    const overlay = document.getElementById("overlay");
+    const player = document.getElementById("player");
+
+    player.src = "";
+    overlay.style.display = "none";
+}
+
+// ==========================================
 
 function getRandomGroup() {
     let group = [];
@@ -81,7 +129,6 @@ function getRandomGroup() {
     return group;
 }
 
-// ⭐ 修复：用 index
 function selectVideo(index) {
     if (hasSelected) return;
 
@@ -108,7 +155,7 @@ function loadRound() {
 
     document.getElementById("videoList").innerHTML = "";
 
-    currentGroup = getRandomGroup(); // ⭐关键
+    currentGroup = getRandomGroup();
 
     currentGroup.forEach((video, index) => {
         let div = document.createElement("div");
@@ -126,7 +173,7 @@ function loadRound() {
 }
 
 // ==========================================
-// ⭐ 用户向量计算
+// 用户向量计算
 // ==========================================
 
 function calcUserVector(selectedVideos) {
@@ -151,33 +198,23 @@ function calcUserVector(selectedVideos) {
 }
 
 // ==========================================
-// 结果
-// ==========================================
 
 function showResult() {
 
     const userVec = calcUserVector(selectedVideos);
 
-    console.log("Excel读取向量:", videos);
-    console.log("用户选择:", selectedVideos);
-    console.log("最终ユーザベクトル:", userVec);
-
-    let norm = Math.sqrt(userVec.reduce((s,v)=>s+v*v,0));
-    console.log("ノルム:", norm);
+    console.log("用户向量:", userVec);
 
     document.getElementById("roundTitle").innerText =
         "ユーザベクトル完成（F12確認）";
 
     document.getElementById("videoList").innerHTML = "";
 
-    // ⭐加这一行（关键）
-    const player = document.getElementById("player");
-    player.src = "";
-    player.style.display = "none"; // ⭐隐藏掉
+    closeVideo(); // ⭐结束时确保关闭播放器
 }
 
 // ==========================================
-// ⭐ Excel读取（最终版）
+// Excel读取
 // ==========================================
 
 async function loadExcel() {
@@ -185,23 +222,19 @@ async function loadExcel() {
         const response = await fetch("./data.xlsx");
 
         if (!response.ok) {
-            throw new Error("Excel加载失败: " + response.status);
+            throw new Error("Excel加载失败");
         }
 
         const data = await response.arrayBuffer();
 
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
         const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
         for (let i = 1; i <= 10; i++) {
             let row = json[i];
 
-            if (!row || row.length < 10) {
-                console.log("跳过异常行:", i, row);
-                continue;
-            }
+            if (!row || row.length < 10) continue;
 
             videos.push({
                 id: row[2],
@@ -209,8 +242,6 @@ async function loadExcel() {
                 vector: row.slice(3, 10).map(Number)
             });
         }
-
-        console.log("读取完成:", videos);
 
         remaining = [...videos];
 
@@ -220,14 +251,12 @@ async function loadExcel() {
         loadRound();
 
     } catch (e) {
-        console.error("❌错误:", e);
+        console.error(e);
         document.getElementById("roundTitle").innerText =
-            "❌ Excel読み込み失敗（F12見て）";
+            "❌ Excel読み込み失敗";
     }
 }
 
-// ==========================================
-// 启动
 // ==========================================
 
 loadExcel();
