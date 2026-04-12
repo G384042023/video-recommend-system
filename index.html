@@ -109,6 +109,11 @@
     <div class="video-container" id="videoList"></div>
 
     <canvas id="radarChart" width="360" height="360"></canvas>
+
+    <button id="nextBtn" style="display:none; margin-top:20px;">
+        次へ
+    </button>
+
     <div id="resultList"></div> <!-- ⭐ 新增 -->
 
     <!-- ===================== -->
@@ -179,11 +184,14 @@
 
             console.log("選択された動画番号:", video.label);
 
+            playVideo(video.id); // ⭐ 先播放
+
             selectedVideos.push(video);
             hasSelected = true;
 
-            round++;
-            loadRound();
+            // ⭐ 显示“下一轮按钮”
+            document.getElementById("nextBtn").style.display = "block";
+
         }
 
         // =====================
@@ -211,9 +219,10 @@
 
                 div.innerHTML = `
             <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
-                 onclick="playVideo('${video.id}')">
+                onclick="selectVideo(${index})">
+                onclick="playVideo('${video.id}')">
             <p><b>${video.label}</b>：${video.title}</p>
-            <button onclick="selectVideo(${index})">選択</button>
+            
         `;
 
                 document.getElementById("videoList").appendChild(div);
@@ -306,7 +315,7 @@
         function showResult() {
 
             const userVec = calcUserVector(selectedVideos);
-            
+
 
             // =====================
             // ⭐ 推荐计算
@@ -470,6 +479,12 @@
             loadExcel();         // 再读10个
         })();
 
+        document.getElementById("nextBtn").onclick = function () {
+            document.getElementById("nextBtn").style.display = "none";
+
+            round++;
+            loadRound();
+        };
 
     </script>
 
