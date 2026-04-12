@@ -14,7 +14,6 @@ body {
     padding: 20px;
 }
 
-/* 视频列表 */
 .video-container {
     display: flex;
     justify-content: center;
@@ -31,7 +30,7 @@ img {
     cursor: pointer;
 }
 
-/* ===== ⭐ 弹窗播放器（关键） ===== */
+/* ===== 弹窗播放器 ===== */
 
 #overlay {
     position: fixed;
@@ -76,7 +75,7 @@ img {
 
 <div class="video-container" id="videoList"></div>
 
-<!-- ⭐ 新：弹窗播放器 -->
+<!-- 弹窗播放器 -->
 <div id="overlay">
     <div id="closeBtn" onclick="closeVideo()">✕</div>
     <div id="videoModal">
@@ -95,7 +94,7 @@ let round = 1;
 let hasSelected = false;
 
 // ==========================================
-// ⭐ 播放视频（改造版）
+// 播放
 // ==========================================
 
 function playVideo(id) {
@@ -103,10 +102,9 @@ function playVideo(id) {
     const player = document.getElementById("player");
 
     player.src = "https://www.youtube.com/embed/" + id;
-    overlay.style.display = "flex"; // ⭐居中显示
+    overlay.style.display = "flex";
 }
 
-// ⭐ 关闭视频
 function closeVideo() {
     const overlay = document.getElementById("overlay");
     const player = document.getElementById("player");
@@ -141,6 +139,9 @@ function selectVideo(index) {
     loadRound();
 }
 
+// ⭐ 動画A/B/C 标签
+const labels = ["動画A", "動画B", "動画C"];
+
 function loadRound() {
 
     if (round > 3) {
@@ -164,7 +165,7 @@ function loadRound() {
         div.innerHTML = `
             <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
                  onclick="playVideo('${video.id}')">
-            <p>${video.title}</p>
+            <p><b>${labels[index]}</b>：${video.title}</p>
             <button onclick="selectVideo(${index})">選択</button>
         `;
 
@@ -173,7 +174,7 @@ function loadRound() {
 }
 
 // ==========================================
-// 用户向量计算
+// 用户向量计算（保持原日志）
 // ==========================================
 
 function calcUserVector(selectedVideos) {
@@ -198,23 +199,30 @@ function calcUserVector(selectedVideos) {
 }
 
 // ==========================================
+// 结果（⭐日志完全恢复）
+// ==========================================
 
 function showResult() {
 
     const userVec = calcUserVector(selectedVideos);
 
-    console.log("用户向量:", userVec);
+    console.log("Excel读取向量:", videos);
+    console.log("用户选择:", selectedVideos);
+    console.log("最终ユーザベクトル:", userVec);
+
+    let norm = Math.sqrt(userVec.reduce((s,v)=>s+v*v,0));
+    console.log("ノルム:", norm);
 
     document.getElementById("roundTitle").innerText =
         "ユーザベクトル完成（F12確認）";
 
     document.getElementById("videoList").innerHTML = "";
 
-    closeVideo(); // ⭐结束时确保关闭播放器
+    closeVideo();
 }
 
 // ==========================================
-// Excel读取
+// Excel读取（日志保留）
 // ==========================================
 
 async function loadExcel() {
@@ -222,19 +230,23 @@ async function loadExcel() {
         const response = await fetch("./data.xlsx");
 
         if (!response.ok) {
-            throw new Error("Excel加载失败");
+            throw new Error("Excel加载失败: " + response.status);
         }
 
         const data = await response.arrayBuffer();
 
         const workbook = XLSX.read(data, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
         const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
         for (let i = 1; i <= 10; i++) {
             let row = json[i];
 
-            if (!row || row.length < 10) continue;
+            if (!row || row.length < 10) {
+                console.log("跳过异常行:", i, row);
+                continue;
+            }
 
             videos.push({
                 id: row[2],
@@ -242,6 +254,8 @@ async function loadExcel() {
                 vector: row.slice(3, 10).map(Number)
             });
         }
+
+        console.log("读取完成:", videos);
 
         remaining = [...videos];
 
@@ -251,9 +265,9 @@ async function loadExcel() {
         loadRound();
 
     } catch (e) {
-        console.error(e);
+        console.error("❌错误:", e);
         document.getElementById("roundTitle").innerText =
-            "❌ Excel読み込み失敗";
+            "❌ Excel読み込み失敗（F12見て）";
     }
 }
 
