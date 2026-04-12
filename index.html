@@ -110,6 +110,8 @@
         let round = 1;
         let hasSelected = false;
 
+        let libraryVideos = []; // ⭐ 新增
+
         // =====================
         // 動画再生制御
         // =====================
@@ -196,6 +198,17 @@
         }
 
         // =====================
+        // ⭐ 余弦相似度
+        // =====================
+        function cosineSimilarity(a, b) {
+            let dot = 0;
+            for (let i = 0; i < a.length; i++) {
+                dot += a[i] * b[i];
+            }
+            return dot;
+        }
+
+        // =====================
         // ユーザベクトル計算
         // =====================
 
@@ -228,6 +241,27 @@
         function showResult() {
 
             const userVec = calcUserVector(selectedVideos);
+
+            // =====================
+            // ⭐ 推荐计算
+            // =====================
+            let results = libraryVideos.map(video => {
+                return {
+                    video: video,
+                    score: cosineSimilarity(userVec, video.vector)
+                };
+            });
+
+            results.sort((a, b) => b.score - a.score);
+
+            let top5 = results.slice(0, 5);
+
+            console.log("===== 推荐Top5 =====");
+            top5.forEach((item, index) => {
+                console.log(
+                    `第${index + 1}位: ${item.video.label} ${item.video.title} 類似度=${item.score}`
+                );
+            });
 
             const selectedLabels = selectedVideos.map(v => v.label);
             console.log("ユーザ選択:", selectedLabels.join(", "));
@@ -300,9 +334,50 @@
         }
 
         // =====================
+        // ⭐ 素材库Excel读取（新增）
+        // =====================
+        async function loadLibrary() {
+            try {
+                const response = await fetch("./library.xlsx");
+
+                if (!response.ok) {
+                    throw new Error("素材库Excel加载失败");
+                }
+
+                const data = await response.arrayBuffer();
+
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                for (let i = 1; i < json.length; i++) {
+                    let row = json[i];
+
+                    if (!row || row.length < 10) continue;
+
+                    libraryVideos.push({
+                        label: "動画" + row[0],
+                        id: row[2],
+                        title: row[1],
+                        vector: row.slice(3, 10).map(Number)
+                    });
+                }
+
+                console.log("素材库读取完成:", libraryVideos.length);
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // =====================
         // 初期化
         // =====================
-        loadExcel();
+        (async function () {
+            await loadLibrary(); // ⭐ 先读99个
+            loadExcel();         // 再读10个
+        })();
+
 
     </script>
 
