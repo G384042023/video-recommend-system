@@ -10,6 +10,7 @@
     <!-- 外部ライブラリ -->
     <!-- ===================== -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- ===================== -->
     <!-- スタイル（CSS） -->
@@ -102,6 +103,7 @@
     <!-- ===================== -->
     <div class="video-container" id="videoList"></div>
 
+    <canvas id="radarChart" width="400" height="400"></canvas>
     <div id="resultList"></div> <!-- ⭐ 新增 -->
 
     <!-- ===================== -->
@@ -225,6 +227,40 @@
         }
 
         // =====================
+        // ⭐ 雷达图绘制
+        // =====================
+        let radarChart = null;
+
+        function drawRadarChart(userVec) {
+
+            const ctx = document.getElementById("radarChart");
+
+            if (radarChart) {
+                radarChart.destroy(); // 防止重复绘制
+            }
+
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: emotionLabels,
+                    datasets: [{
+                        label: 'ユーザ感情ベクトル',
+                        data: userVec,
+                        fill: true
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        // =====================
         // ユーザベクトル計算
         // =====================
 
@@ -257,6 +293,7 @@
         function showResult() {
 
             const userVec = calcUserVector(selectedVideos);
+            drawRadarChart(userVec);
 
             // =====================
             // ⭐ 推荐计算
