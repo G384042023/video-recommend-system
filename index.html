@@ -72,6 +72,20 @@
             top: 20px;
             right: 40px;
         }
+
+        /* ===================== */
+        /* 推荐结果显示 */
+        /* ===================== */
+
+        #resultList {
+            margin-top: 40px;
+        }
+
+        .result-card {
+            margin: 10px auto;
+            width: 300px;
+            text-align: left;
+        }
     </style>
 </head>
 
@@ -87,6 +101,8 @@
     <!-- UI：動画リスト -->
     <!-- ===================== -->
     <div class="video-container" id="videoList"></div>
+
+    <div id="resultList"></div> <!-- ⭐ 新增 -->
 
     <!-- ===================== -->
     <!-- UI：動画再生モーダル -->
@@ -255,6 +271,29 @@
             results.sort((a, b) => b.score - a.score);
 
             let top5 = results.slice(0, 5);
+
+            // =====================
+            // ⭐ 显示到页面
+            // =====================
+            const resultDiv = document.getElementById("resultList");
+            resultDiv.innerHTML = "<h3>推薦結果 Top5</h3>";
+
+            top5.forEach((item, index) => {
+
+                const v = item.video;
+
+                let div = document.createElement("div");
+                div.className = "result-card";
+
+                div.innerHTML = `
+        <p><b>第${index + 1}位：</b>${v.label} ${v.title}</p>
+        <img src="https://img.youtube.com/vi/${v.id}/0.jpg"
+             onclick="playVideo('${v.id}')">
+        <p>類似度：${item.score}</p>
+    `;
+
+                resultDiv.appendChild(div);
+            });
 
             console.log("===== 推荐Top5 =====");
             top5.forEach((item, index) => {
