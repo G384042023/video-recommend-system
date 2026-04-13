@@ -107,6 +107,7 @@
             gap: 25px;
             max-width: 800px;
             margin: 40px auto;
+            align-items: stretch;
         }
 
         .result-card {
@@ -182,6 +183,14 @@
             top: 20px;
             right: 40px;
         }
+
+        #subTitle {
+            max-width: 1000px;
+            margin: 50px auto 0 auto;
+            padding-left: 10px;
+            border-left: 4px solid #3498db;
+        }
+        
     </style>
 </head>
 
@@ -201,6 +210,7 @@
     <canvas id="radarChart" width="360" height="360"></canvas>
 
     <div id="mainResult"></div> <!-- ⭐ 主推荐 -->
+    <h3 id="subTitle">推薦結果 Top5</h3>
     <div id="resultList"></div> <!-- ⭐ 新增 -->
 
     <!-- ===================== -->
@@ -444,7 +454,7 @@
             // ⭐ 显示到页面
             // =====================
             const resultDiv = document.getElementById("resultList");
-            resultDiv.innerHTML = "<h3>推薦結果 Top5</h3>";
+            resultDiv.innerHTML = "";
 
             top5.slice(1).forEach((item, index) => {
 
