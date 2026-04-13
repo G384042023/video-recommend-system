@@ -92,6 +92,31 @@
             max-width: 360px;
             margin: 20px auto;
         }
+
+        /* ===================== */
+        /* 主推荐（Top1） */
+        /* ===================== */
+
+        #mainResult {
+            margin-top: 40px;
+        }
+
+        .main-card {
+            width: 500px;
+            margin: 0 auto 30px auto;
+            text-align: center;
+        }
+
+        .main-card img {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .main-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
@@ -110,7 +135,7 @@
 
     <canvas id="radarChart" width="360" height="360"></canvas>
 
-
+    <div id="mainResult"></div> <!-- ⭐ 主推荐 -->
     <div id="resultList"></div> <!-- ⭐ 新增 -->
 
     <!-- ===================== -->
@@ -330,6 +355,21 @@
             let top5 = results.slice(0, 5);
             let top1 = top5[0]; // ⭐ 第一名
 
+            // =====================
+            // ⭐ 主推荐显示（Top1）
+            // =====================
+            const mainDiv = document.getElementById("mainResult");
+
+            mainDiv.innerHTML = `
+                <div class="main-card">
+                    <div class="main-title">おすすめ動画</div>
+                    <p><b>第1位：</b>${top1.video.label} ${top1.video.title}</p>
+                    <img src="https://img.youtube.com/vi/${top1.video.id}/0.jpg"
+                         onclick="playVideo('${top1.video.id}')">
+                    <p>類似度：${top1.score}</p>
+                </div>
+            `;
+
             drawRadarChart(userVec, top1.video.vector);
 
             // =====================
@@ -338,7 +378,7 @@
             const resultDiv = document.getElementById("resultList");
             resultDiv.innerHTML = "<h3>推薦結果 Top5</h3>";
 
-            top5.forEach((item, index) => {
+            top5.slice(1).forEach((item, index) => {
 
                 const v = item.video;
 
