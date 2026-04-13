@@ -155,8 +155,8 @@
             player.src = "";
             overlay.style.display = "none";
 
-            // ⭐ 新增：关闭视频后进入下一轮
-            if (hasSelected) {
+            // ⭐ 只在前3轮推进
+            if (hasSelected && round <= 3) {
                 round++;
                 loadRound();
             }
@@ -379,7 +379,6 @@
 
             document.getElementById("videoList").innerHTML = "";
 
-            closeVideo();
         }
 
         // =====================
