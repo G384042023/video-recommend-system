@@ -102,10 +102,11 @@
 
         #resultList {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            max-width: 1000px;
-            margin: 0 auto;
+            grid-template-columns: repeat(2, 1fr);
+            /* ⭐ 固定2列 */
+            gap: 25px;
+            max-width: 800px;
+            margin: 40px auto;
         }
 
         .result-card {
@@ -114,8 +115,18 @@
             border-radius: 10px;
             text-align: left;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            /* ⭐ 关键 */
+
         }
+
+        .result-card p {
+            margin: 6px 0;
+        }
+
 
         .result-card:hover {
             transform: scale(1.03);
@@ -125,6 +136,10 @@
             width: 100%;
             border-radius: 6px;
             cursor: pointer;
+
+            aspect-ratio: 16/9;
+            /* ⭐ 统一比例 */
+            object-fit: cover;
         }
 
         /* ===================== */
@@ -420,7 +435,7 @@
                     <img src="https://img.youtube.com/vi/${top1.video.id}/0.jpg"
                         onclick="playVideo('${top1.video.id}')">
 
-                    <p>類似度：${top1.score.toFixed(3)}</p>
+                    <p>類似度：${top1.score}</p>
                 </div>
             `;
             drawRadarChart(userVec, top1.video.vector);
