@@ -196,7 +196,6 @@
 
             font-size: 18px;
         }
-
     </style>
 </head>
 
@@ -475,7 +474,7 @@
         <p><b>第${index + 1}位：</b>${v.label} ${v.title}</p>
         <img src="https://img.youtube.com/vi/${v.id}/0.jpg"
              onclick="playVideo('${v.id}')">
-        <p>類似度：${item.score}</p>
+        <p>類似度：${Math.round(item.score * 100)}%</p>
     `;
 
                 resultDiv.appendChild(div);
@@ -501,8 +500,7 @@
             console.log("ノルム:", norm);
 
             document.getElementById("roundTitle").innerText =
-                "ユーザベクトル完成（F12確認）";
-
+                "おすすめ結果";
             document.getElementById("videoList").innerHTML = "";
 
         }
