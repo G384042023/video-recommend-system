@@ -185,12 +185,18 @@
         }
 
         #subTitle {
-            max-width: 1000px;
-            margin: 50px auto 0 auto;
-            padding-left: 10px;
-            border-left: 4px solid #3498db;
+            display: none;
+            display: inline-block;
+            margin: 50px auto 20px auto;
+
+            padding: 6px 14px;
+            background: #3498db;
+            color: white;
+            border-radius: 6px;
+
+            font-size: 18px;
         }
-        
+
     </style>
 </head>
 
@@ -413,6 +419,8 @@
         function showResult() {
 
             const userVec = calcUserVector(selectedVideos);
+
+            document.getElementById("subTitle").style.display = "inline-block";
 
 
             // =====================
