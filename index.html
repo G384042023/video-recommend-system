@@ -110,9 +110,6 @@
 
     <canvas id="radarChart" width="360" height="360"></canvas>
 
-    <button id="nextBtn" style="display:none; margin-top:20px;">
-        次へ
-    </button>
 
     <div id="resultList"></div> <!-- ⭐ 新增 -->
 
@@ -194,9 +191,6 @@
 
             selectedVideos.push(video);
             hasSelected = true;
-
-            // ⭐ 显示“下一轮按钮”
-            document.getElementById("nextBtn").style.display = "block";
 
         }
 
@@ -483,12 +477,6 @@
             loadExcel();         // 再读10个
         })();
 
-        document.getElementById("nextBtn").onclick = function () {
-            document.getElementById("nextBtn").style.display = "none";
-
-            round++;
-            loadRound();
-        };
 
     </script>
 
