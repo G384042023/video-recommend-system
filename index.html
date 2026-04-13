@@ -18,79 +18,53 @@
     <style>
         body {
             font-family: Arial;
+            background: #f5f6fa;
             text-align: center;
             padding: 20px;
         }
 
+        /* 标题 */
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        /* ===================== */
+        /* 三选视频（第一轮等） */
+        /* ===================== */
+
         .video-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+            max-width: 900px;
+            margin: 30px auto;
         }
 
         .video-card {
-            width: 250px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
         }
 
-        img {
+        .video-card:hover {
+            transform: scale(1.03);
+        }
+
+        .video-card img {
             width: 100%;
+            border-radius: 8px;
             cursor: pointer;
         }
 
-        /* ===== 弹窗播放器 ===== */
-
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-
-            justify-content: center;
-            align-items: center;
-
-            z-index: 1000;
-        }
-
-        #videoModal {
-            width: 80%;
-            max-width: 800px;
-        }
-
-        #videoModal iframe {
-            width: 100%;
-            height: 450px;
-        }
-
-        #closeBtn {
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
-            position: absolute;
-            top: 20px;
-            right: 40px;
-        }
-
         /* ===================== */
-        /* 推荐结果显示 */
+        /* 雷达图 */
         /* ===================== */
-
-        #resultList {
-            margin-top: 40px;
-        }
-
-        .result-card {
-            margin: 10px auto;
-            width: 300px;
-            text-align: left;
-        }
 
         #radarChart {
-            max-width: 360px;
-            margin: 20px auto;
+            max-width: 400px;
+            margin: 30px auto;
         }
 
         /* ===================== */
@@ -98,24 +72,59 @@
         /* ===================== */
 
         #mainResult {
-            margin-top: 40px;
+            margin-top: 30px;
         }
 
         .main-card {
-            width: 500px;
-            margin: 0 auto 30px auto;
-            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 40px auto;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .main-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
         }
 
         .main-card img {
             width: 100%;
+            border-radius: 10px;
             cursor: pointer;
         }
 
-        .main-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 10px;
+        /* ===================== */
+        /* 推荐列表（Top2~5） */
+        /* ===================== */
+
+        #resultList {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .result-card {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: left;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .result-card:hover {
+            transform: scale(1.03);
+        }
+
+        .result-card img {
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -361,15 +370,18 @@
             const mainDiv = document.getElementById("mainResult");
 
             mainDiv.innerHTML = `
-                <div class="main-card">
-                    <div class="main-title">おすすめ動画</div>
-                    <p><b>第1位：</b>${top1.video.label} ${top1.video.title}</p>
+            <div class="main-card">
+                    <div class="main-title">あなたへのおすすめ</div>
+
+                    <p><b>第1位：</b>${top1.video.label}</p>
+                    <p>${top1.video.title}</p>
+
                     <img src="https://img.youtube.com/vi/${top1.video.id}/0.jpg"
-                         onclick="playVideo('${top1.video.id}')">
-                    <p>類似度：${top1.score}</p>
+                        onclick="playVideo('${top1.video.id}')">
+
+                    <p>類似度：${top1.score.toFixed(3)}</p>
                 </div>
             `;
-
             drawRadarChart(userVec, top1.video.vector);
 
             // =====================
