@@ -244,7 +244,10 @@
                 document.getElementById("menu").style.display = "none";
                 document.getElementById("app").style.display = "block";
 
-                loadLibrary();
+                // ⭐⭐⭐ 重新加载数据（关键）
+                loadLibrary().then(() => {
+                    loadExcel();
+                });
             }
 
             // =====================
@@ -384,7 +387,7 @@
                     console.error("vocab构建失败");
                 }
             }
-            
+
             function computeTFIDF(text) {
                 let words = text.split(" ");
                 let tf = {};
@@ -712,13 +715,6 @@
                 }
             }
 
-            // =====================
-            // 初期化
-            // =====================
-            (async function () {
-                await loadLibrary();
-                loadExcel();
-            })();
         </script>
 
     </div>
