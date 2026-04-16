@@ -280,13 +280,17 @@
                 player.src = "";
                 overlay.style.display = "none";
 
-                // ⭐ 只在前3轮推进
-                if (hasSelected && round <= 3) {
+                if (!hasSelected) return;
+
+                // ⭐⭐⭐ 关键修改
+                if (round === 3) {
+                    showResult();   // 第3轮直接出结果
+                } else {
                     round++;
                     loadRound();
                 }
             }
-
+            
             // =====================
             // ランダム選出ロジック
             // =====================
@@ -480,6 +484,8 @@
             // 結果出力
             // =====================
             function showResult() {
+
+                console.log("🔥 showResult进入");
 
                 let userVec;
                 let userVecTF;   // ⭐ 新增
