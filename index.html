@@ -398,7 +398,7 @@
                 for (let w in tf) tf[w] /= words.length;
 
                 vocab.forEach(word => {
-                    let df = corpus.filter(doc => doc.includes(word)).length;
+                    let df = corpus.filter(doc => doc.split(" ").includes(word)).length;
                     let idf = Math.log(corpus.length / (df + 1));
                     vec.push((tf[word] || 0) * idf);
                 });
@@ -482,6 +482,7 @@
             function showResult() {
 
                 let userVec;
+                let userVecTF;   // ⭐ 新增
 
                 if (mode === "emotion") {
                     userVec = calcUserVector(selectedVideos);
@@ -512,7 +513,7 @@
 
                     let weights = [0.2, 0.3, 0.5];
 
-                    let userVecTF = new Array(vocab.length).fill(0);
+                    userVecTF = new Array(vocab.length).fill(0);
 
                     for (let i = 0; i < 3; i++) {
                         let vec = computeTFIDF(selectedVideos[i].keywords);
@@ -594,15 +595,20 @@
 
                 const selectedLabels = selectedVideos.map(v => v.label);
                 console.log("ユーザ選択:", selectedLabels.join(", "));
-
                 console.log("Excel读取向量:", videos);
                 console.log("用户选择:", selectedVideos);
 
-                const labeledVec = userVec.map((v, i) => `${emotionLabels[i]}: ${v}`);
-                console.log("最终ユーザベクトル:", labeledVec);
+                // ⭐ 分模式处理（关键）
+                if (mode === "emotion") {
+                    const labeledVec = userVec.map((v, i) => `${emotionLabels[i]}: ${v}`);
+                    console.log("最终ユーザベクトル:", labeledVec);
 
-                let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
-                console.log("ノルム:", norm);
+                    let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
+                    console.log("ノルム:", norm);
+
+                } else if (mode === "tfidf") {
+                    console.log("TF-IDF 用户向量长度:", userVecTF.length);
+                }
 
                 document.getElementById("roundTitle").innerText =
                     "おすすめ結果";
