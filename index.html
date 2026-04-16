@@ -200,248 +200,335 @@
 
 <body>
 
+    <div id="menu">
+        <h2>推薦システム</h2>
+        <button onclick="startMode('emotion')">Step1：感情ベクトル</button>
+        <button onclick="startMode('tfidf')">Step2：TF-IDF（内容）</button>
+    </div>
+
     <!-- ===================== -->
     <!-- UI：タイトル・進行表示 -->
     <!-- ===================== -->
-    <h2 id="roundTitle">Excel読み込み中...</h2>
-    <p id="progress"></p>
+    <div id="app" style="display:none;">
+        <h2 id="roundTitle">Excel読み込み中...</h2>
+        <p id="progress"></p>
 
-    <!-- ===================== -->
-    <!-- UI：動画リスト -->
-    <!-- ===================== -->
-    <div class="video-container" id="videoList"></div>
+        <!-- ===================== -->
+        <!-- UI：動画リスト -->
+        <!-- ===================== -->
+        <div class="video-container" id="videoList"></div>
 
-    <canvas id="radarChart" width="360" height="360"></canvas>
+        <canvas id="radarChart" width="360" height="360"></canvas>
 
-    <div id="mainResult"></div> <!-- ⭐ 主推荐 -->
-    <h3 id="subTitle">推薦結果 Top5</h3>
-    <div id="resultList"></div> <!-- ⭐ 新增 -->
+        <div id="mainResult"></div> <!-- ⭐ 主推荐 -->
+        <h3 id="subTitle">推薦結果 Top5</h3>
+        <div id="resultList"></div> <!-- ⭐ 新增 -->
 
-    <!-- ===================== -->
-    <!-- UI：動画再生モーダル -->
-    <!-- ===================== -->
-    <div id="overlay">
-        <div id="closeBtn" onclick="closeVideo()">✕</div>
-        <div id="videoModal">
-            <iframe id="player" frameborder="0" allowfullscreen></iframe>
+        <!-- ===================== -->
+        <!-- UI：動画再生モーダル -->
+        <!-- ===================== -->
+        <div id="overlay">
+            <div id="closeBtn" onclick="closeVideo()">✕</div>
+            <div id="videoModal">
+                <iframe id="player" frameborder="0" allowfullscreen></iframe>
+            </div>
         </div>
-    </div>
 
-    <script>
+        <script>
 
-        // =====================
-        // 状態管理（グローバル変数）
-        // =====================
-        let videos = [];
-        let remaining = [];
-        let selectedVideos = [];
-        let currentGroup = [];
-        let round = 1;
-        let hasSelected = false;
+            let mode = null;
 
-        let libraryVideos = []; // ⭐ 新增
+            function startMode(selectedMode) {
+                mode = selectedMode;
 
-        // =====================
-        // 動画再生制御
-        // =====================
-        function playVideo(id) {
-            const overlay = document.getElementById("overlay");
-            const player = document.getElementById("player");
+                document.getElementById("menu").style.display = "none";
+                document.getElementById("app").style.display = "block";
 
-            player.src = "https://www.youtube.com/embed/" + id;
-            overlay.style.display = "flex";
-        }
-
-        function closeVideo() {
-            const overlay = document.getElementById("overlay");
-            const player = document.getElementById("player");
-
-            player.src = "";
-            overlay.style.display = "none";
-
-            // ⭐ 只在前3轮推进
-            if (hasSelected && round <= 3) {
-                round++;
-                loadRound();
-            }
-        }
-
-        // =====================
-        // ランダム選出ロジック
-        // =====================
-        function getRandomGroup() {
-            let group = [];
-
-            for (let i = 0; i < 3; i++) {
-                let index = Math.floor(Math.random() * remaining.length);
-                group.push(remaining[index]);
-                remaining.splice(index, 1);
+                loadLibrary();
             }
 
-            return group;
-        }
+            // =====================
+            // 状態管理（グローバル変数）
+            // =====================
+            let videos = [];
+            let remaining = [];
+            let selectedVideos = [];
+            let currentGroup = [];
+            let round = 1;
+            let hasSelected = false;
 
-        // =====================
-        // ユーザ選択処理
-        // =====================
-        function selectVideo(index) {
-            if (hasSelected) return;
+            let libraryVideos = []; // ⭐ 新增
 
-            const video = currentGroup[index];
+            // =====================
+            // 動画再生制御
+            // =====================
+            function playVideo(id) {
+                const overlay = document.getElementById("overlay");
+                const player = document.getElementById("player");
 
-            console.log("選択された動画番号:", video.label);
-
-            playVideo(video.id); // ⭐ 先播放
-
-            selectedVideos.push(video);
-            hasSelected = true;
-
-        }
-
-        // =====================
-        // ラウンド表示制御
-        // =====================
-        function loadRound() {
-
-            if (round > 3) {
-                showResult();
-                return;
+                player.src = "https://www.youtube.com/embed/" + id;
+                overlay.style.display = "flex";
             }
 
-            hasSelected = false;
+            function closeVideo() {
+                const overlay = document.getElementById("overlay");
+                const player = document.getElementById("player");
 
-            document.getElementById("roundTitle").innerText =
-                "第" + round + "ラウンド";
+                player.src = "";
+                overlay.style.display = "none";
 
-            document.getElementById("videoList").innerHTML = "";
+                // ⭐ 只在前3轮推进
+                if (hasSelected && round <= 3) {
+                    round++;
+                    loadRound();
+                }
+            }
 
-            currentGroup = getRandomGroup();
+            // =====================
+            // ランダム選出ロジック
+            // =====================
+            function getRandomGroup() {
+                let group = [];
 
-            currentGroup.forEach((video, index) => {
-                let div = document.createElement("div");
-                div.className = "video-card";
+                for (let i = 0; i < 3; i++) {
+                    let index = Math.floor(Math.random() * remaining.length);
+                    group.push(remaining[index]);
+                    remaining.splice(index, 1);
+                }
 
-                div.innerHTML = `
+                return group;
+            }
+
+            // =====================
+            // ユーザ選択処理
+            // =====================
+            function selectVideo(index) {
+                if (hasSelected) return;
+
+                const video = currentGroup[index];
+
+                console.log("選択された動画番号:", video.label);
+
+                playVideo(video.id); // ⭐ 先播放
+
+                selectedVideos.push(video);
+                hasSelected = true;
+
+            }
+
+            // =====================
+            // ラウンド表示制御
+            // =====================
+            function loadRound() {
+
+                if (round > 3) {
+                    showResult();
+                    return;
+                }
+
+                hasSelected = false;
+
+                document.getElementById("roundTitle").innerText =
+                    "第" + round + "ラウンド";
+
+                document.getElementById("videoList").innerHTML = "";
+
+                currentGroup = getRandomGroup();
+
+                currentGroup.forEach((video, index) => {
+                    let div = document.createElement("div");
+                    div.className = "video-card";
+
+                    div.innerHTML = `
                     <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
                          onclick="selectVideo(${index})">
                     <p><b>${video.label}</b>：${video.title}</p>
                 `;
 
-                document.getElementById("videoList").appendChild(div);
-            });
-        }
-
-        // =====================
-        // ⭐ 余弦相似度
-        // =====================
-        function cosineSimilarity(a, b) {
-            let dot = 0;
-            for (let i = 0; i < a.length; i++) {
-                dot += a[i] * b[i];
-            }
-            return dot;
-        }
-
-        // =====================
-        // ⭐ 双雷达图（用户 vs Top1）
-        // =====================
-        let radarChart = null;
-
-        function drawRadarChart(userVec, topVideoVec) {
-
-            const ctx = document.getElementById("radarChart");
-
-            if (radarChart) {
-                radarChart.destroy();
+                    document.getElementById("videoList").appendChild(div);
+                });
             }
 
-            radarChart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: emotionLabels,
-                    datasets: [
-                        {
-                            label: 'ユーザ',
-                            data: userVec,
-                            fill: true
-                        },
-                        {
-                            label: '推薦Top1',
-                            data: topVideoVec,
-                            fill: true
-                        }
-                    ]
-                },
-                options: {
-                    responsive: false,
-                    scales: {
-                        r: {
-                            min: 0,
-                            max: 1
+            let vocab = [];
+            let corpus = [];
+
+            // =====================
+            // ⭐ 余弦相似度
+            // =====================
+            function cosineSimilarity(a, b) {
+                let dot = 0;
+                for (let i = 0; i < a.length; i++) {
+                    dot += a[i] * b[i];
+                }
+                return dot;
+            }
+
+
+            function buildTFIDF() {
+                corpus = [];
+
+                videos.forEach(v => corpus.push(v.keywords));
+                libraryVideos.forEach(v => corpus.push(v.keywords));
+
+                let set = new Set();
+
+                corpus.forEach(text => {
+                    text.split(" ").forEach(w => set.add(w));
+                });
+
+                vocab = Array.from(set);
+            }
+
+            function computeTFIDF(text) {
+                let words = text.split(" ");
+                let tf = {};
+                let vec = [];
+
+                words.forEach(w => tf[w] = (tf[w] || 0) + 1);
+
+                for (let w in tf) tf[w] /= words.length;
+
+                vocab.forEach(word => {
+                    let df = corpus.filter(doc => doc.includes(word)).length;
+                    let idf = Math.log(corpus.length / (df + 1));
+                    vec.push((tf[word] || 0) * idf);
+                });
+
+                return vec;
+            }
+
+
+            // =====================
+            // ⭐ 双雷达图（用户 vs Top1）
+            // =====================
+            let radarChart = null;
+
+            function drawRadarChart(userVec, topVideoVec) {
+
+                const ctx = document.getElementById("radarChart");
+
+                if (radarChart) {
+                    radarChart.destroy();
+                }
+
+                radarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: emotionLabels,
+                        datasets: [
+                            {
+                                label: 'ユーザ',
+                                data: userVec,
+                                fill: true
+                            },
+                            {
+                                label: '推薦Top1',
+                                data: topVideoVec,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: false,
+                        scales: {
+                            r: {
+                                min: 0,
+                                max: 1
+                            }
                         }
                     }
+                });
+            }
+
+            // =====================
+            // ユーザベクトル計算
+            // =====================
+
+            const emotionLabels = ["悲しい", "不安", "怒り", "嫌悪", "信頼", "驚き", "嬉しい"];
+
+            function calcUserVector(selectedVideos) {
+
+                const weights = [0.2, 0.3, 0.5];
+
+                let result = new Array(7).fill(0);
+
+                for (let i = 0; i < 3; i++) {
+                    for (let j = 0; j < 7; j++) {
+                        result[j] += selectedVideos[i].vector[j] * weights[i];
+                    }
                 }
-            });
-        }
 
-        // =====================
-        // ユーザベクトル計算
-        // =====================
+                let norm = Math.sqrt(result.reduce((s, v) => s + v * v, 0));
 
-        const emotionLabels = ["悲しい", "不安", "怒り", "嫌悪", "信頼", "驚き", "嬉しい"];
-
-        function calcUserVector(selectedVideos) {
-
-            const weights = [0.2, 0.3, 0.5];
-
-            let result = new Array(7).fill(0);
-
-            for (let i = 0; i < 3; i++) {
                 for (let j = 0; j < 7; j++) {
-                    result[j] += selectedVideos[i].vector[j] * weights[i];
+                    result[j] /= norm;
                 }
+
+                return result;
             }
 
-            let norm = Math.sqrt(result.reduce((s, v) => s + v * v, 0));
-
-            for (let j = 0; j < 7; j++) {
-                result[j] /= norm;
-            }
-
-            return result;
-        }
-
-        // =====================
-        // 結果出力
-        // =====================
-        function showResult() {
-
-            const userVec = calcUserVector(selectedVideos);
-
-            document.getElementById("subTitle").style.display = "inline-block";
-
-
             // =====================
-            // ⭐ 推荐计算
+            // 結果出力
             // =====================
-            let results = libraryVideos.map(video => {
-                return {
-                    video: video,
-                    score: cosineSimilarity(userVec, video.vector)
-                };
-            });
+            function showResult() {
 
-            results.sort((a, b) => b.score - a.score);
+                let userVec;
 
-            let top5 = results.slice(0, 5);
-            let top1 = top5[0]; // ⭐ 第一名
+                if (mode === "emotion") {
+                    userVec = calcUserVector(selectedVideos);
+                }
 
-            // =====================
-            // ⭐ 主推荐显示（Top1）
-            // =====================
-            const mainDiv = document.getElementById("mainResult");
+                document.getElementById("subTitle").style.display = "inline-block";
 
-            mainDiv.innerHTML = `
+
+                // =====================
+                // ⭐ 推荐计算
+                // =====================
+                let results;
+
+                if (mode === "emotion") {
+
+                    results = libraryVideos.map(video => ({
+                        video: video,
+                        score: cosineSimilarity(userVec, video.vector)
+                    }));
+
+                } else if (mode === "tfidf") {
+
+                    let weights = [0.2, 0.3, 0.5];
+
+                    let userVecTF = new Array(vocab.length).fill(0);
+
+                    for (let i = 0; i < 3; i++) {
+                        let vec = computeTFIDF(selectedVideos[i].keywords);
+
+                        for (let j = 0; j < vocab.length; j++) {
+                            userVecTF[j] += vec[j] * weights[i];
+                        }
+                    }
+
+                    results = libraryVideos.map(video => {
+                        let vec = computeTFIDF(video.keywords);
+                        return {
+                            video: video,
+                            score: cosineSimilarity(userVecTF, vec)
+                        };
+                    });
+
+                }
+
+                results.sort((a, b) => b.score - a.score);
+
+                let top5 = results.slice(0, 5);
+                let top1 = top5[0]; // ⭐ 第一名
+
+
+                // =====================
+                // ⭐ 主推荐显示（Top1）
+                // =====================
+                const mainDiv = document.getElementById("mainResult");
+
+                mainDiv.innerHTML = `
             <div class="main-card">
                     <div class="main-title">あなたへのおすすめ</div>
 
@@ -454,156 +541,166 @@
                     <p>類似度：${(top1.score * 100).toFixed(2)}%</p>
                 </div>
             `;
-            drawRadarChart(userVec, top1.video.vector);
+                if (mode === "emotion") {
+                    drawRadarChart(userVec, top1.video.vector);
+                }
 
-            // =====================
-            // ⭐ 显示到页面
-            // =====================
-            const resultDiv = document.getElementById("resultList");
-            resultDiv.innerHTML = "";
+                // =====================
+                // ⭐ 显示到页面
+                // =====================
+                const resultDiv = document.getElementById("resultList");
+                resultDiv.innerHTML = "";
 
-            top5.slice(1).forEach((item, index) => {
+                top5.slice(1).forEach((item, index) => {
 
-                const rank = index + 2; // ⭐ 从第2位开始
+                    const rank = index + 2; // ⭐ 从第2位开始
 
-                const v = item.video;
+                    const v = item.video;
 
-                let div = document.createElement("div");
-                div.className = "result-card";
+                    let div = document.createElement("div");
+                    div.className = "result-card";
 
-                div.innerHTML = `
+                    div.innerHTML = `
                 <p><b>第${rank}位：</b>${v.label} ${v.title}</p>
                 <img src="https://img.youtube.com/vi/${v.id}/0.jpg"
                     onclick="playVideo('${v.id}')">
                 <p>類似度：${(item.score * 100).toFixed(2)}%</p>
             `;
 
-                resultDiv.appendChild(div);
-            });
+                    resultDiv.appendChild(div);
+                });
 
-            console.log("===== 推荐Top5 =====");
-            top5.forEach((item, index) => {
-                console.log(
-                    `第${index + 1}位: ${item.video.label} ${item.video.title} 類似度=${item.score}`
-                );
-            });
+                console.log("===== 推荐Top5 =====");
+                top5.forEach((item, index) => {
+                    console.log(
+                        `第${index + 1}位: ${item.video.label} ${item.video.title} 類似度=${item.score}`
+                    );
+                });
 
-            const selectedLabels = selectedVideos.map(v => v.label);
-            console.log("ユーザ選択:", selectedLabels.join(", "));
+                const selectedLabels = selectedVideos.map(v => v.label);
+                console.log("ユーザ選択:", selectedLabels.join(", "));
 
-            console.log("Excel读取向量:", videos);
-            console.log("用户选择:", selectedVideos);
+                console.log("Excel读取向量:", videos);
+                console.log("用户选择:", selectedVideos);
 
-            const labeledVec = userVec.map((v, i) => `${emotionLabels[i]}: ${v}`);
-            console.log("最终ユーザベクトル:", labeledVec);
+                const labeledVec = userVec.map((v, i) => `${emotionLabels[i]}: ${v}`);
+                console.log("最终ユーザベクトル:", labeledVec);
 
-            let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
-            console.log("ノルム:", norm);
+                let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
+                console.log("ノルム:", norm);
 
-            document.getElementById("roundTitle").innerText =
-                "おすすめ結果";
-            document.getElementById("videoList").innerHTML = "";
+                document.getElementById("roundTitle").innerText =
+                    "おすすめ結果";
+                document.getElementById("videoList").innerHTML = "";
 
-        }
+            }
 
-        // =====================
-        // Excelデータ読み込み
-        // =====================
-        async function loadExcel() {
-            try {
-                const response = await fetch("./data.xlsx");
+            // =====================
+            // Excelデータ読み込み
+            // =====================
+            async function loadExcel() {
+                try {
+                    const response = await fetch("./data.xlsx");
 
-                if (!response.ok) {
-                    throw new Error("Excel加载失败: " + response.status);
-                }
-
-                const data = await response.arrayBuffer();
-
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
-                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                for (let i = 1; i <= 10; i++) {
-                    let row = json[i];
-
-                    if (!row || row.length < 10) {
-                        console.log("跳过异常行:", i, row);
-                        continue;
+                    if (!response.ok) {
+                        throw new Error("Excel加载失败: " + response.status);
                     }
 
-                    videos.push({
-                        label: "動画" + row[0],
-                        id: row[2],
-                        title: row[1],
-                        vector: row.slice(3, 10).map(Number)
-                    });
+                    const data = await response.arrayBuffer();
+
+                    const workbook = XLSX.read(data, { type: "array" });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                    for (let i = 1; i <= 10; i++) {
+                        let row = json[i];
+
+                        if (!row || row.length < 10) {
+                            console.log("跳过异常行:", i, row);
+                            continue;
+                        }
+
+                        videos.push({
+                            label: "動画" + row[0],
+                            id: row[2],
+                            title: row[1],
+                            vector: row.slice(3, 10).map(Number),
+                            keywords: row[10]
+                        });
+                    }
+
+                    console.log("读取完成:", videos);
+
+                    remaining = [...videos];
+
+
+                    document.getElementById("roundTitle").innerText =
+                        "読み込み完了・開始";
+
+                    loadRound();
+
+                } catch (e) {
+                    console.error("❌错误:", e);
+                    document.getElementById("roundTitle").innerText =
+                        "❌ Excel読み込み失敗（F12見て）";
                 }
-
-                console.log("读取完成:", videos);
-
-                remaining = [...videos];
-
-                document.getElementById("roundTitle").innerText =
-                    "読み込み完了・開始";
-
-                loadRound();
-
-            } catch (e) {
-                console.error("❌错误:", e);
-                document.getElementById("roundTitle").innerText =
-                    "❌ Excel読み込み失敗（F12見て）";
             }
-        }
 
-        // =====================
-        // ⭐ 素材库Excel读取（新增）
-        // =====================
-        async function loadLibrary() {
-            try {
-                const response = await fetch("./library.xlsx");
+            // =====================
+            // ⭐ 素材库Excel读取（新增）
+            // =====================
+            async function loadLibrary() {
+                try {
+                    const response = await fetch("./library.xlsx");
 
-                if (!response.ok) {
-                    throw new Error("素材库Excel加载失败");
+                    if (!response.ok) {
+                        throw new Error("素材库Excel加载失败");
+                    }
+
+                    const data = await response.arrayBuffer();
+
+                    const workbook = XLSX.read(data, { type: "array" });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                    for (let i = 1; i < json.length; i++) {
+                        let row = json[i];
+
+                        if (!row || row.length < 10) continue;
+
+                        libraryVideos.push({
+                            label: "動画" + row[0],
+                            id: row[2],
+                            title: row[1],
+                            vector: row.slice(3, 10).map(Number),
+                            keywords: row[10]
+                        });
+                    }
+
+                    console.log("素材库读取完成:", libraryVideos.length);
+
+                } catch (e) {
+                    console.error(e);
                 }
-
-                const data = await response.arrayBuffer();
-
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                for (let i = 1; i < json.length; i++) {
-                    let row = json[i];
-
-                    if (!row || row.length < 10) continue;
-
-                    libraryVideos.push({
-                        label: "動画" + row[0],
-                        id: row[2],
-                        title: row[1],
-                        vector: row.slice(3, 10).map(Number)
-                    });
-                }
-
-                console.log("素材库读取完成:", libraryVideos.length);
-
-            } catch (e) {
-                console.error(e);
             }
-        }
 
-        // =====================
-        // 初期化
-        // =====================
-        (async function () {
-            await loadLibrary(); // ⭐ 先读99个
-            loadExcel();         // 再读10个
-        })();
+            // =====================
+            // 初期化
+            // =====================
+            (async function () {
+                await loadLibrary();
 
+                if (mode === "tfidf") {
+                    buildTFIDF();
+                }
 
-    </script>
+                loadExcel();
+            })();
 
+        </script>
+
+    </div>
 </body>
 
 </html>
