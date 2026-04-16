@@ -235,7 +235,7 @@
         </div>
 
         <script>
-
+            let dfMap = {};
             let mode = null;
 
             function startMode(selectedMode) {
@@ -290,7 +290,7 @@
                     loadRound();
                 }
             }
-            
+
             // =====================
             // ランダム選出ロジック
             // =====================
@@ -390,6 +390,15 @@
                 if (vocab.length === 0) {
                     console.error("vocab构建失败");
                 }
+
+                dfMap = {};
+
+                vocab.forEach(word => {
+                    dfMap[word] = corpus.filter(doc =>
+                        doc.split(" ").includes(word)
+                    ).length;
+                });
+
             }
 
             function computeTFIDF(text) {
@@ -402,7 +411,7 @@
                 for (let w in tf) tf[w] /= words.length;
 
                 vocab.forEach(word => {
-                    let df = corpus.filter(doc => doc.split(" ").includes(word)).length;
+                    let df = dfMap[word] || 0;
                     let idf = Math.log(corpus.length / (df + 1));
                     vec.push((tf[word] || 0) * idf);
                 });
