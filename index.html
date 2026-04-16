@@ -495,6 +495,12 @@
 
                 } else if (mode === "tfidf") {
 
+                    // ⭐⭐⭐ 加在这里（第一行）
+                    if (vocab.length === 0) {
+                        console.error("TF-IDF未初始化");
+                        return;
+                    }
+
                     let weights = [0.2, 0.3, 0.5];
 
                     let userVecTF = new Array(vocab.length).fill(0);
@@ -600,8 +606,14 @@
             // =====================
             async function loadExcel() {
                 try {
-                    const response = await fetch("./data.xlsx");
 
+                    // ⭐⭐⭐ 加在这里（最关键位置）
+                    videos = [];
+                    remaining = [];
+                    selectedVideos = [];
+                    round = 1;
+
+                    const response = await fetch("./data.xlsx");
                     if (!response.ok) {
                         throw new Error("Excel加载失败: " + response.status);
                     }
@@ -635,6 +647,11 @@
                     remaining = [...videos];
 
 
+                    if (mode === "tfidf") {
+                        buildTFIDF();   // ⭐ 正确位置（数据已齐）
+                    }
+
+
                     document.getElementById("roundTitle").innerText =
                         "読み込み完了・開始";
 
@@ -652,6 +669,9 @@
             // =====================
             async function loadLibrary() {
                 try {
+
+                    libraryVideos = [];   // ⭐⭐⭐ 加这一行（清空）
+
                     const response = await fetch("./library.xlsx");
 
                     if (!response.ok) {
@@ -690,14 +710,8 @@
             // =====================
             (async function () {
                 await loadLibrary();
-
-                if (mode === "tfidf") {
-                    buildTFIDF();
-                }
-
                 loadExcel();
             })();
-
         </script>
 
     </div>
