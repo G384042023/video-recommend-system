@@ -367,18 +367,24 @@
             function buildTFIDF() {
                 corpus = [];
 
-                videos.forEach(v => corpus.push(v.keywords));
-                libraryVideos.forEach(v => corpus.push(v.keywords));
+                videos.forEach(v => corpus.push(v.keywords || ""));
+                libraryVideos.forEach(v => corpus.push(v.keywords || ""));
 
                 let set = new Set();
 
                 corpus.forEach(text => {
+                    if (!text) return;
                     text.split(" ").forEach(w => set.add(w));
                 });
 
                 vocab = Array.from(set);
-            }
 
+                // ⭐⭐⭐ 就加在这里（函数最后）
+                if (vocab.length === 0) {
+                    console.error("vocab构建失败");
+                }
+            }
+            
             function computeTFIDF(text) {
                 let words = text.split(" ");
                 let tf = {};
@@ -646,11 +652,12 @@
 
                     remaining = [...videos];
 
-
+                    // ⭐⭐⭐ TF-IDF初始化必须在这里
                     if (mode === "tfidf") {
-                        buildTFIDF();   // ⭐ 正确位置（数据已齐）
-                    }
+                        buildTFIDF();
 
+                        console.log("vocab size:", vocab.length); // 调试用
+                    }
 
                     document.getElementById("roundTitle").innerText =
                         "読み込み完了・開始";
