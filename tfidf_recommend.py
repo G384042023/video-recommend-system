@@ -64,6 +64,9 @@ user_vector = np.sum(user_tfidf.toarray() * weights, axis=0)
 norm = np.linalg.norm(user_vector)
 if norm != 0:
     user_vector = user_vector / norm
+    
+    # 检测用户向量
+    print("user_vector norm:", np.linalg.norm(user_vector))
 # =====================
 # 计算相似度
 # =====================
@@ -71,6 +74,9 @@ lib_vectors = lib_tfidf.toarray()
 
 # 归一化
 lib_vectors = normalize(lib_vectors)
+
+# 检测库向量
+print("lib_vector[0] norm:", np.linalg.norm(lib_vectors[0]))
 
 # cosine similarity
 from sklearn.metrics.pairwise import cosine_similarity

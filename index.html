@@ -506,6 +506,63 @@
                 return vec;
             }
 
+            // 解释函数
+            function explainTFIDF(userVec, videoVec) {
+
+                let contributions = [];
+
+                // =====================
+                // ① 计算每个词的贡献度（点积拆解）
+                // =====================
+                for (let i = 0; i < vocab.length; i++) {
+                    let score = userVec[i] * videoVec[i];
+
+                    if (score > 0) {
+                        contributions.push({
+                            word: vocab[i],
+                            value: score
+                        });
+                    }
+                }
+
+                // =====================
+                // ② 按贡献度从高到低排序
+                // =====================
+                contributions.sort((a, b) => b.value - a.value);
+
+                // =====================
+                // ③ 动态选择关键词（累计贡献达到70%为止）
+                // 目的：
+                // - 避免固定5个词太少或太多
+                // - 保证解释覆盖主要相似度来源
+                // =====================
+                let total = contributions.reduce((s, c) => s + c.value, 0);
+
+                // =====================
+                // ⭐ 异常保护：没有任何贡献词（完全不相似）
+                // 避免 sum / total 出现 NaN 或除0错误
+                // =====================
+                if (total === 0) {
+                    console.warn("没有可解释的关键词（用户与视频无共同词）");
+                    return [];
+                }
+
+                let sum = 0;
+                let selected = [];
+
+                for (let c of contributions) {
+                    selected.push(c);
+                    sum += c.value;
+
+                    // ⭐ 当累计贡献达到70%就停止
+                    if (sum / total >= 0.7) break;
+                }
+
+                // =====================
+                // ④ 返回解释关键词
+                // =====================
+                return selected;
+            }
 
             // =====================
             // ⭐ 双雷达图（用户 vs Top1）
@@ -661,6 +718,7 @@
                         let vec = computeTFIDF(video.keywords);
                         return {
                             video: video,
+                            vec: vec,
                             score: cosineSimilarity(userVecTF, vec)
                         };
                     });
@@ -671,6 +729,7 @@
 
                 let top5 = results.slice(0, 5);
                 let top1 = top5[0]; // ⭐ 第一名
+                let explanation = explainTFIDF(userVecTF, top1.vec);
 
 
                 // =====================
@@ -693,6 +752,25 @@
             `;
                 if (mode === "emotion") {
                     drawRadarChart(userVec, top1.video.vector);
+
+                } else if (mode === "tfidf") {
+
+                    const radar = document.getElementById("radarChart");
+
+                    radar.outerHTML = `
+                    <div style="
+                        max-width:400px;
+                        margin:30px auto;
+                        background:white;
+                        padding:15px;
+                        border-radius:10px;
+                        box-shadow:0 2px 8px rgba(0,0,0,0.1);
+                        text-align:left;
+                    ">
+                        <b>推薦理由（TF-IDF）</b><br><br>
+                        ${explanation.map(e => `・${e.word} (${e.value.toFixed(3)})`).join("<br>")}
+                    </div>
+                    `;
                 }
 
                 // =====================
