@@ -244,15 +244,36 @@
                 document.getElementById("menu").style.display = "none";
                 document.getElementById("app").style.display = "block";
 
-                // ⭐⭐⭐ 重新加载数据（关键）
+                // =====================
+                // ⭐ 模式启动入口（系统重置点）
+                // 作用：
+                // 1. 记录当前模式（emotion / tfidf）
+                // 2. 隐藏菜单，显示主界面
+                // 3. 先加载素材库（library.xlsx）
+                // 4. 再加载用户候选视频（data.xlsx）
+                // ⚠️ 顺序不能反，否则 TF-IDF 语料不完整
+                // =====================
                 loadLibrary().then(() => {
                     loadExcel();
                 });
             }
 
             // =====================
-            // 状態管理（グローバル変数）
+            // ⭐ 状态管理（核心数据流）
             // =====================
+            // videos           → 当前轮可选视频（来自 data.xlsx）
+            // remaining        → 剩余未被抽取的视频池
+            // selectedVideos   → 用户选中的3个视频
+            // currentGroup     → 当前轮展示的3个视频
+            // round            → 当前轮数（1~3）
+            // hasSelected      → 当前轮是否已选择（防止重复点击）
+            //
+            // libraryVideos    → 推荐候选库（30个视频）
+            //
+            // ⚠️ 注意：
+            // 所有推荐逻辑最终只用 libraryVideos
+            // =====================
+
             let videos = [];
             let remaining = [];
             let selectedVideos = [];
@@ -282,7 +303,17 @@
 
                 if (!hasSelected) return;
 
-                // ⭐⭐⭐ 关键修改
+                // =====================
+                // ⭐ 播放结束后的流程控制
+                // 逻辑：
+                // 1. 用户关闭视频后才算“完成选择”
+                // 2. 第3轮结束 → 直接进入推荐
+                // 3. 否则进入下一轮
+                //
+                // ⚠️ 注意：
+                // 推荐触发点在这里（不是 selectVideo）
+                // =====================
+
                 if (round === 3) {
                     showResult();   // 第3轮直接出结果
                 } else {
@@ -292,8 +323,15 @@
             }
 
             // =====================
-            // ランダム選出ロジック
+            // ⭐ 随机抽取3个视频（无重复）
+            // 逻辑：
+            // 1. 从 remaining 中随机选
+            // 2. 选中后立即从 remaining 删除
+            // 3. 确保每一轮视频不会重复出现
+            //
+            // ⚠️ remaining 是“消耗型数组”
             // =====================
+
             function getRandomGroup() {
                 let group = [];
 
@@ -307,8 +345,16 @@
             }
 
             // =====================
-            // ユーザ選択処理
+            // ⭐ 用户选择视频（点击行为）
+            // 流程：
+            // 1. 防止重复点击（hasSelected）
+            // 2. 记录当前选择的视频
+            // 3. 立即播放视频（提升体验）
+            // 4. 锁定当前轮（等待关闭视频）
+            //
+            // ⚠️ 下一轮不会在这里触发，而是在 closeVideo()
             // =====================
+
             function selectVideo(index) {
                 if (hasSelected) return;
 
@@ -360,8 +406,19 @@
             let corpus = [];
 
             // =====================
-            // ⭐ 余弦相似度
+            // ⭐ 余弦相似度（核心相似度计算）
+            // 公式：
+            // cosθ = (a · b) / (|a| × |b|)
+            //
+            // 作用：
+            // - emotion 模式：比较情感向量
+            // - tfidf 模式：比较文本向量
+            //
+            // ⚠️ 特点：
+            // - 已处理除0情况
+            // - 输出范围通常在 0 ~ 1（非负向量）
             // =====================
+
             function cosineSimilarity(a, b) {
                 let dot = 0;
                 let normA = 0;
@@ -381,6 +438,16 @@
                 return dot / (normA * normB);
             }
 
+            // =====================
+            // ⭐ 构建 TF-IDF 语料库（全局初始化）
+            // 步骤：
+            // 1. 收集所有文本（videos + libraryVideos）
+            // 2. 构建词汇表 vocab
+            // 3. 统计 DF（词在多少文档出现）
+            //
+            // ⚠️ vocab 是后续所有 TF-IDF 的基础
+            // =====================
+
             function buildTFIDF() {
                 corpus = [];
 
@@ -396,7 +463,7 @@
 
                 vocab = Array.from(set);
 
-                // ⭐⭐⭐ 就加在这里（函数最后）
+                // ⚠️ 安全检查：如果 vocab 为空，说明语料构建失败
                 if (vocab.length === 0) {
                     console.error("vocab构建失败");
                 }
@@ -411,6 +478,16 @@
 
             }
 
+            // =====================
+            // ⭐ 单文本 → TF-IDF 向量
+            // 步骤：
+            // 1. 计算 TF（词频）
+            // 2. 使用 DF 计算 IDF
+            // 3. 按 vocab 顺序生成向量
+            //
+            // 输出：
+            // 向量长度 = vocab.length
+            // =====================
             function computeTFIDF(text) {
                 let words = text.split(" ");
                 let tf = {};
@@ -473,7 +550,14 @@
             }
 
             // =====================
-            // ユーザベクトル計算
+            // ⭐ 用户情感向量计算
+            // 逻辑：
+            // - 使用3轮选择的视频
+            // - 权重：旧 → 新 = 0.2 / 0.3 / 0.5
+            // - 最后进行 L2 归一化
+            //
+            // 目的：
+            // 表示用户当前的情绪状态
             // =====================
 
             const emotionLabels = ["悲しい", "不安", "怒り", "嫌悪", "信頼", "驚き", "嬉しい"];
@@ -500,8 +584,21 @@
             }
 
             // =====================
-            // 結果出力
+            // ⭐ 推荐系统核心函数
+            //
+            // 模式分支：
+            // ① emotion → 情感相似度推荐
+            // ② tfidf   → 内容相似度推荐
+            //
+            // 流程：
+            // 1. 构建用户向量
+            // 2. 与 libraryVideos 计算相似度
+            // 3. 排序
+            // 4. 输出 Top5
+            //
+            // ⚠️ Top1 单独展示，其余列表展示
             // =====================
+
             function showResult() {
 
                 console.log("🔥 showResult进入");
@@ -547,6 +644,18 @@
                             userVecTF[j] += vec[j] * weights[i];
                         }
                     }
+
+                    // ⭐ L2正規化（超重要）
+                    let norm = Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0));
+
+                    if (norm !== 0) {
+                        for (let i = 0; i < userVecTF.length; i++) {
+                            userVecTF[i] /= norm;
+                        }
+                    }
+
+                    // ⭐ 验证归一化是否成功
+                    console.log("norm userVecTF:", Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0)));
 
                     results = libraryVideos.map(video => {
                         let vec = computeTFIDF(video.keywords);
@@ -642,12 +751,21 @@
             }
 
             // =====================
-            // Excelデータ読み込み
+            // ⭐ 用户候选视频加载（data.xlsx）
+            //
+            // 职责：
+            // 1. 重置所有状态（防止重复进入污染）
+            // 2. 读取 Excel 数据
+            // 3. 构建 videos / remaining
+            // 4. TF-IDF 模式下初始化 vocab
+            //
+            // ⚠️ 这是整个系统的初始化入口
             // =====================
+
             async function loadExcel() {
                 try {
 
-                    // ⭐⭐⭐ 加在这里（最关键位置）
+                    // ⚠️ 重置系统状态（必须在读取前执行）                    
                     videos = [];
                     remaining = [];
                     selectedVideos = [];
@@ -686,7 +804,7 @@
 
                     remaining = [...videos];
 
-                    // ⭐⭐⭐ TF-IDF初始化必须在这里
+                    // ⭐ TF-IDF 初始化（必须在数据加载后执行）
                     if (mode === "tfidf") {
                         buildTFIDF();
 
@@ -706,12 +824,19 @@
             }
 
             // =====================
-            // ⭐ 素材库Excel读取（新增）
+            // ⭐ 推荐素材库加载（library.xlsx）
+            //
+            // 作用：
+            // - 提供最终推荐候选视频（99个）
+            // - 不参与用户选择轮
+            //
+            // ⚠️ 每次 startMode 都必须重新加载
             // =====================
+
             async function loadLibrary() {
                 try {
 
-                    libraryVideos = [];   // ⭐⭐⭐ 加这一行（清空）
+                    libraryVideos = [];   // ⚠️ 清空旧数据，防止重复加载
 
                     const response = await fetch("./library.xlsx");
 
