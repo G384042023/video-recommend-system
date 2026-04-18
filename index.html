@@ -519,7 +519,7 @@
                     let word = vocab[i];
 
                     let totalContribution = 0;
-                    let sources = [];
+                    let sources = new Set();
 
                     // ⭐ 分解3个用户视频贡献
                     for (let k = 0; k < 3; k++) {
@@ -530,7 +530,7 @@
                         let contrib = vec[i] * weight;
 
                         if (contrib > 0) {
-                            sources.push(`動画${k + 1}`);
+                            sources.add(selectedVideos[k].label);
                         }
 
                         totalContribution += contrib;
@@ -755,6 +755,7 @@
                 let top5 = results.slice(0, 5);
                 let top1 = top5[0]; // ⭐ 第一名
                 let explainWords = explainTFIDF(userVecTF, top1.video);
+                let totalValue = explainWords.reduce((s, c) => s + c.value, 0);
                 // =====================
                 // ⭐ 关键词来源集合
                 // =====================
@@ -812,7 +813,7 @@
                         <ul style="padding-left:20px">
                         ${explainWords.map(c => `
                             <li>
-                                ${c.word} (${c.value.toFixed(3)})
+                                ${c.word} (${totalValue === 0 ? 0 : (c.value / totalValue * 100).toFixed(1)}%)
                                 <span style="color:#666;font-size:12px">
                                     [${c.source.join(" + ")} × Top1]
                                 </span>
