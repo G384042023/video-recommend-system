@@ -730,6 +730,19 @@
                 let top5 = results.slice(0, 5);
                 let top1 = top5[0]; // ⭐ 第一名
                 let explanation = explainTFIDF(userVecTF, top1.vec);
+                // =====================
+                // ⭐ 关键词来源集合
+                // =====================
+                let userWords = new Set(
+                    selectedVideos
+                        .map(v => v.keywords || "")
+                        .join(" ")
+                        .split(" ")
+                );
+
+                let top1Words = new Set(
+                    (top1.video.keywords || "").split(" ")
+                );
 
 
                 // =====================
@@ -767,8 +780,22 @@
                         box-shadow:0 2px 8px rgba(0,0,0,0.1);
                         text-align:left;
                     ">
-                        <b>推薦理由（TF-IDF）</b><br><br>
-                        ${explanation.map(e => `・${e.word} (${e.value.toFixed(3)})`).join("<br>")}
+                        <b>推薦理由（Top1との一致理由・主要キーワード）</b><br><br>
+                        <div style="margin-bottom:10px;color:#444">
+                            ユーザ選択動画とTop1の共通特徴を、累積寄与率70%までのキーワードで表示：
+                        </div>
+                        ${explanation.map(e => {
+
+                        let fromUser = userWords.has(e.word);
+                        let fromTop1 = top1Words.has(e.word);
+
+                        return `
+                        ・${e.word} (${e.value.toFixed(3)})
+                        <span style="color:#666;font-size:12px">
+                            [${fromUser ? "User" : ""}${fromUser && fromTop1 ? " × " : ""}${fromTop1 ? "Top1" : ""}]
+                        </span>
+                        `;
+                    }).join("<br>")}
                     </div>
                     `;
                 }
