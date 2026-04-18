@@ -507,20 +507,45 @@
             }
 
             // 解释函数
-            function explainTFIDF(userVec, videoVec) {
+            function explainTFIDF(userVec, topVideo) {
 
                 let contributions = [];
 
                 // =====================
-                // ① 计算每个词的贡献度（点积拆解）
+                // ① 计算每个词的贡献度（拆成“動画1/2/3来源”）
                 // =====================
                 for (let i = 0; i < vocab.length; i++) {
-                    let score = userVec[i] * videoVec[i];
+
+                    let word = vocab[i];
+
+                    let totalContribution = 0;
+                    let sources = [];
+
+                    // ⭐ 分解3个用户视频贡献
+                    for (let k = 0; k < 3; k++) {
+
+                        let vec = computeTFIDF(selectedVideos[k].keywords);
+                        let weight = [0.2, 0.3, 0.5][k];
+
+                        let contrib = vec[i] * weight;
+
+                        if (contrib > 0) {
+                            sources.push(`動画${k + 1}`);
+                        }
+
+                        totalContribution += contrib;
+                    }
+
+                    // ⭐ Top1向量
+                    let topVec = computeTFIDF(topVideo.keywords);
+
+                    let score = totalContribution * topVec[i];
 
                     if (score > 0) {
                         contributions.push({
-                            word: vocab[i],
-                            value: score
+                            word: word,
+                            value: score,
+                            source: sources   // ⭐ 新增来源
                         });
                     }
                 }
@@ -729,7 +754,7 @@
 
                 let top5 = results.slice(0, 5);
                 let top1 = top5[0]; // ⭐ 第一名
-                let explanation = explainTFIDF(userVecTF, top1.vec);
+                let explainWords = explainTFIDF(userVecTF, top1.video);
                 // =====================
                 // ⭐ 关键词来源集合
                 // =====================
@@ -784,18 +809,16 @@
                         <div style="margin-bottom:10px;color:#444">
                             ユーザ選択動画とTop1の共通特徴を、累積寄与率70%までのキーワードで表示：
                         </div>
-                        ${explanation.map(e => {
-
-                        let fromUser = userWords.has(e.word);
-                        let fromTop1 = top1Words.has(e.word);
-
-                        return `
-                        ・${e.word} (${e.value.toFixed(3)})
-                        <span style="color:#666;font-size:12px">
-                            [${fromUser ? "User" : ""}${fromUser && fromTop1 ? " × " : ""}${fromTop1 ? "Top1" : ""}]
-                        </span>
-                        `;
-                    }).join("<br>")}
+                        <ul style="padding-left:20px">
+                        ${explainWords.map(c => `
+                            <li>
+                                ${c.word} (${c.value.toFixed(3)})
+                                <span style="color:#666;font-size:12px">
+                                    [${c.source.join(" + ")} × Top1]
+                                </span>
+                            </li>
+                        `).join("")}
+                        </ul>
                     </div>
                     `;
                 }
