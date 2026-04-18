@@ -545,7 +545,7 @@
                         contributions.push({
                             word: word,
                             value: score,
-                            source: sources   // ⭐ 新增来源
+                            source: sources.length > 0 ? sources : []
                         });
                     }
                 }
@@ -815,7 +815,9 @@
                             <li>
                                 ${c.word} (${totalValue === 0 ? 0 : (c.value / totalValue * 100).toFixed(1)}%)
                                 <span style="color:#666;font-size:12px">
-                                    [${c.source.join(" + ")} × Top1]
+                                    [${(Array.isArray(c.source) ? c.source : [c.source])
+                                        .filter(Boolean)
+                                        .join(" + ")} × Top1]
                                 </span>
                             </li>
                         `).join("")}
