@@ -298,9 +298,10 @@
                 const overlay = document.getElementById("overlay");
                 const player = document.getElementById("player");
 
+                if (!hasSelected) return;
+
                 overlay.style.display = "none";
 
-                // ⭐ 先进入推荐（UI秒切）
                 if (round === 3) {
                     showResult();
                 } else {
@@ -308,30 +309,9 @@
                     loadRound();
                 }
 
-                // ⭐ 再清播放器（避免卡顿）
                 setTimeout(() => {
                     player.src = "";
                 }, 0);
-
-                if (!hasSelected) return;
-
-                // =====================
-                // ⭐ 播放结束后的流程控制
-                // 逻辑：
-                // 1. 用户关闭视频后才算“完成选择”
-                // 2. 第3轮结束 → 直接进入推荐
-                // 3. 否则进入下一轮
-                //
-                // ⚠️ 注意：
-                // 推荐触发点在这里（不是 selectVideo）
-                // =====================
-
-                if (round === 3) {
-                    showResult();   // 第3轮直接出结果
-                } else {
-                    round++;
-                    loadRound();
-                }
             }
 
             // =====================
@@ -520,7 +500,9 @@
 
             // 解释函数
             function explainTFIDF(userVec, topVideo) {
-
+                // ⭐ 预计算（只算一次）
+                let userTFIDFVecs = selectedVideos.map(v => computeTFIDF(v.keywords));
+                let topVec = computeTFIDF(topVideo.keywords);
                 let contributions = [];
 
                 // =====================
@@ -536,7 +518,7 @@
                     // ⭐ 分解3个用户视频贡献
                     for (let k = 0; k < 3; k++) {
 
-                        let vec = computeTFIDF(selectedVideos[k].keywords);
+                        let vec = userTFIDFVecs[k];
                         let weight = [0.2, 0.3, 0.5][k];
 
                         let contrib = vec[i] * weight;
@@ -551,8 +533,7 @@
                         totalContribution += contrib;
                     }
 
-                    // ⭐ Top1向量
-                    let topVec = computeTFIDF(topVideo.keywords);
+                    // 已经在外面算好了
 
                     let score = totalContribution * topVec[i];
 
@@ -825,7 +806,7 @@
                         <div style="margin-bottom:10px;color:#444">
                             ユーザ選択動画とTop1の共通特徴を、
                             累積寄与率70%までの主要キーワードで表示：
-                            （各値はTop1との類似度に対する寄与割合 [%]）
+                            （各％はこの単語が「類似度」に対して占める寄与割合です。）
                         </div>
                         <ul style="padding-left:20px">
                         ${explainWords.map(c => `
