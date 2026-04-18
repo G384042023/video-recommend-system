@@ -298,8 +298,20 @@
                 const overlay = document.getElementById("overlay");
                 const player = document.getElementById("player");
 
-                player.src = "";
                 overlay.style.display = "none";
+
+                // ⭐ 先进入推荐（UI秒切）
+                if (round === 3) {
+                    showResult();
+                } else {
+                    round++;
+                    loadRound();
+                }
+
+                // ⭐ 再清播放器（避免卡顿）
+                setTimeout(() => {
+                    player.src = "";
+                }, 0);
 
                 if (!hasSelected) return;
 
@@ -811,7 +823,9 @@
                     ">
                         <b>推薦理由（Top1との一致理由・主要キーワード）</b><br><br>
                         <div style="margin-bottom:10px;color:#444">
-                            ユーザ選択動画とTop1の共通特徴を、累積寄与率70%までのキーワードで表示：
+                            ユーザ選択動画とTop1の共通特徴を、
+                            累積寄与率70%までの主要キーワードで表示：
+                            （各値はTop1との類似度に対する寄与割合 [%]）
                         </div>
                         <ul style="padding-left:20px">
                         ${explainWords.map(c => `
