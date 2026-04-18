@@ -529,7 +529,10 @@
 
                         let contrib = vec[i] * weight;
 
-                        if (contrib > 0) {
+                        // ⭐ 改这里：用“词是否出现”判断来源（而不是 TF-IDF）
+                        let words = (selectedVideos[k].keywords || "").split(" ");
+
+                        if (words.includes(word)) {
                             sources.add(selectedVideos[k].label);
                         }
 
@@ -545,7 +548,7 @@
                         contributions.push({
                             word: word,
                             value: score,
-                            source: sources.length > 0 ? sources : []
+                            source: sources.size > 0 ? Array.from(sources) : []
                         });
                     }
                 }
@@ -816,8 +819,8 @@
                                 ${c.word} (${totalValue === 0 ? 0 : (c.value / totalValue * 100).toFixed(1)}%)
                                 <span style="color:#666;font-size:12px">
                                     [${(Array.isArray(c.source) ? c.source : [c.source])
-                                        .filter(Boolean)
-                                        .join(" + ")} × Top1]
+                            .filter(Boolean)
+                            .join(" + ")} × Top1]
                                 </span>
                             </li>
                         `).join("")}
