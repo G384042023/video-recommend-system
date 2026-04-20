@@ -470,33 +470,68 @@
                 });
 
                 vocab = vocab.filter(word => {
-                    return dfMap[word] < corpus.length * 0.8;
+                    return dfMap[word] < corpus.length * 0.5;
                 });
             }
 
-            // =====================
-            // ⭐ 单文本 → TF-IDF 向量
-            // 步骤：
-            // 1. 计算 TF（词频）
-            // 2. 使用 DF 计算 IDF
-            // 3. 按 vocab 顺序生成向量
-            //
-            // 输出：
-            // 向量长度 = vocab.length
-            // =====================
             function computeTFIDF(text) {
+
                 let words = text.split(" ");
                 let tf = {};
-                let vec = [];
 
+                // =====================
+                // ① TF 计算
+                // =====================
                 words.forEach(w => tf[w] = (tf[w] || 0) + 1);
 
-                for (let w in tf) tf[w] /= words.length;
+                for (let w in tf) {
+                    tf[w] /= words.length;
+                }
+
+                // =====================
+                // ② 计算每个词的 TF-IDF 分数
+                // =====================
+                let scores = [];
 
                 vocab.forEach(word => {
                     let df = dfMap[word] || 0;
+
+                    // ⭐ 用你现在的IDF版本
                     let idf = Math.log(1 + corpus.length / (df + 1));
-                    vec.push((tf[word] || 0) * idf);
+
+                    let value = (tf[word] || 0) * idf;
+
+                    scores.push({
+                        word: word,
+                        value: value
+                    });
+                });
+
+                // =====================
+                // ③ 排序（重要）
+                // =====================
+                scores.sort((a, b) => b.value - a.value);
+
+                // =====================
+                // ④ 只保留 Top30
+                // =====================
+                let topWords = new Set(
+                    scores.slice(0, 30).map(s => s.word)
+                );
+
+                // =====================
+                // ⑤ 构建最终向量（只保留Top30）
+                // =====================
+                let vec = [];
+
+                vocab.forEach(word => {
+                    if (topWords.has(word)) {
+                        let df = dfMap[word] || 0;
+                        let idf = Math.log(1 + corpus.length / (df + 1));
+                        vec.push((tf[word] || 0) * idf);
+                    } else {
+                        vec.push(0);
+                    }
                 });
 
                 return vec;
