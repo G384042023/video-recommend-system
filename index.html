@@ -469,6 +469,9 @@
                     ).length;
                 });
 
+                vocab = vocab.filter(word => {
+                    return dfMap[word] < corpus.length * 0.8;
+                });
             }
 
             // =====================
@@ -492,7 +495,7 @@
 
                 vocab.forEach(word => {
                     let df = dfMap[word] || 0;
-                    let idf = Math.log(corpus.length / (df + 1));
+                    let idf = Math.log(1 + corpus.length / (df + 1));
                     vec.push((tf[word] || 0) * idf);
                 });
 
@@ -872,7 +875,7 @@
                     ${mode === "fusion" ? `
                     <p style="font-size:12px;color:#666">
                     Emotion: ${(top1.emoNorm * 100).toFixed(1)}% /
-                    TF-IDF: ${(top1.tfNorm * 100).toFixed(1)}%
+                    TF-IDF: ${(top1.tfNorm * 100).toFixed(2)}%
                     </p>
 
                     <p style="font-size:11px;color:#999">
@@ -881,7 +884,7 @@
                     ` : ""}
                 </div>
                 `;
-                
+
                 if (mode === "emotion") {
                     drawRadarChart(userVec, top1.video.vector);
 
@@ -942,7 +945,7 @@
 
                         <br>
 
-                        TF-IDF: ${(top1.tfNorm * 100).toFixed(1)}%<br>
+                        TF-IDF: ${(top1.tfNorm * 100).toFixed(2)}%<br>
                         <div style="background:#eee;height:8px;border-radius:4px;">
                             <div style="width:${top1.tfNorm * 100}%;background:#e67e22;height:8px;border-radius:4px;"></div>
                         </div>
