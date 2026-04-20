@@ -469,75 +469,31 @@
                     ).length;
                 });
 
-                vocab = vocab.filter(word => {
-                    return dfMap[word] < corpus.length * 0.8;
-                });
             }
 
+            // =====================
+            // ⭐ 单文本 → TF-IDF 向量
+            // 步骤：
+            // 1. 计算 TF（词频）
+            // 2. 使用 DF 计算 IDF
+            // 3. 按 vocab 顺序生成向量
+            //
+            // 输出：
+            // 向量长度 = vocab.length
+            // =====================
             function computeTFIDF(text) {
-
                 let words = text.split(" ");
                 let tf = {};
+                let vec = [];
 
-                // =====================
-                // ① TF 计算
-                // =====================
                 words.forEach(w => tf[w] = (tf[w] || 0) + 1);
 
-                for (let w in tf) {
-                    tf[w] /= words.length;
-                }
-
-                // =====================
-                // ② 计算每个词的 TF-IDF 分数
-                // =====================
-                let scores = [];
+                for (let w in tf) tf[w] /= words.length;
 
                 vocab.forEach(word => {
                     let df = dfMap[word] || 0;
-
-                    // ⭐ 用你现在的IDF版本
-                    let idf = Math.log(1 + corpus.length / (df + 1));
-
-                    let value = Math.pow((tf[word] || 0) * idf, 0.8);
-
-                    scores.push({
-                        word: word,
-                        value: value
-                    });
-                });
-
-                // =====================
-                // ③ 排序（重要）
-                // =====================
-                scores.sort((a, b) => b.value - a.value);
-
-                // =====================
-                // ④ 只保留 Top40
-                // =====================
-                let topWords = new Set(
-                    scores.slice(0, 40).map(s => s.word)
-                );
-
-                // 保留“高频词”（防止语义丢失）
-                let baseWords = new Set(
-                    words.filter(w => tf[w] > 0.025)
-                );
-                baseWords.forEach(w => topWords.add(w));
-
-                // =====================
-                // ⑤ 构建最终向量（只保留Top30）
-                // =====================
-                let vec = [];
-
-                vocab.forEach(word => {
-                    if (topWords.has(word)) {
-                        let df = dfMap[word] || 0;
-                        let idf = Math.log(1 + corpus.length / (df + 1));
-                        vec.push((tf[word] || 0) * idf);
-                    } else {
-                        vec.push(0);
-                    }
+                    let idf = Math.log(corpus.length / (df + 1));
+                    vec.push((tf[word] || 0) * idf);
                 });
 
                 return vec;
@@ -916,7 +872,7 @@
                     ${mode === "fusion" ? `
                     <p style="font-size:12px;color:#666">
                     Emotion: ${(top1.emoNorm * 100).toFixed(1)}% /
-                    TF-IDF: ${(top1.tfNorm * 100).toFixed(2)}%
+                    TF-IDF: ${(top1.tfNorm * 100).toFixed(1)}%
                     </p>
 
                     <p style="font-size:11px;color:#999">
@@ -925,7 +881,7 @@
                     ` : ""}
                 </div>
                 `;
-
+                
                 if (mode === "emotion") {
                     drawRadarChart(userVec, top1.video.vector);
 
@@ -986,7 +942,7 @@
 
                         <br>
 
-                        TF-IDF: ${(top1.tfNorm * 100).toFixed(2)}%<br>
+                        TF-IDF: ${(top1.tfNorm * 100).toFixed(1)}%<br>
                         <div style="background:#eee;height:8px;border-radius:4px;">
                             <div style="width:${top1.tfNorm * 100}%;background:#e67e22;height:8px;border-radius:4px;"></div>
                         </div>
