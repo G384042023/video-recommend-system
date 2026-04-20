@@ -470,7 +470,7 @@
                 });
 
                 vocab = vocab.filter(word => {
-                    return dfMap[word] < corpus.length * 0.5;
+                    return dfMap[word] < corpus.length * 0.8;
                 });
             }
 
@@ -513,11 +513,17 @@
                 scores.sort((a, b) => b.value - a.value);
 
                 // =====================
-                // ④ 只保留 Top30
+                // ④ 只保留 Top50
                 // =====================
                 let topWords = new Set(
-                    scores.slice(0, 30).map(s => s.word)
+                    scores.slice(0, 50).map(s => s.word)
                 );
+
+                // 保留“高频词”（防止语义丢失）
+                let baseWords = new Set(
+                    words.filter(w => tf[w] > 0.015)
+                );
+                baseWords.forEach(w => topWords.add(w));
 
                 // =====================
                 // ⑤ 构建最终向量（只保留Top30）
