@@ -755,6 +755,8 @@
                         let vec = computeTFIDF(video.keywords);
                         let tfScore = cosineSimilarity(userVecTF, vec);
 
+                        tfScore = Math.sqrt(tfScore); // ⭐ TF-IDF相似度开根号（压缩高分之间的差距，拉高中低分）
+
                         return {
                             video: video,
                             emoScore: emoScore,
