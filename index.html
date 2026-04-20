@@ -202,8 +202,9 @@
 
     <div id="menu">
         <h2>推薦システム</h2>
-        <button onclick="startMode('emotion')">Step1：感情ベクトル</button>
-        <button onclick="startMode('tfidf')">Step2：TF-IDF（内容）</button>
+        <button onclick="startMode('emotion')">Emotion-Based</button>
+        <button onclick="startMode('tfidf')">Content-Based (TF-IDF)</button>
+        <button onclick="startMode('fusion')">Hybrid (Emotion + Content)</button>
     </div>
 
     <!-- ===================== -->
@@ -703,7 +704,67 @@
                         score: cosineSimilarity(userVec, video.vector)
                     }));
 
-                } else if (mode === "tfidf") {
+                } else if (mode === "fusion") {
+                    
+                    // =====================
+                    // ⭐ 安全检查（必须）
+                    // =====================
+                    if (vocab.length === 0) {
+                        console.error("TF-IDF未初始化");
+                        return;
+                    }
+
+                    // =====================
+                    // ⭐ ① 情感向量
+                    // =====================
+                    let userVecEmotion = calcUserVector(selectedVideos);
+
+                    // =====================
+                    // ⭐ ② TF-IDF向量
+                    // =====================
+                    let weights = [0.2, 0.3, 0.5];
+                    let userVecTF = new Array(vocab.length).fill(0);
+
+                    for (let i = 0; i < 3; i++) {
+                        let vec = computeTFIDF(selectedVideos[i].keywords);
+
+                        for (let j = 0; j < vocab.length; j++) {
+                            userVecTF[j] += vec[j] * weights[i];
+                        }
+                    }
+
+                    // ⭐ 归一化
+                    let normTF = Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0));
+                    if (normTF !== 0) {
+                        for (let i = 0; i < userVecTF.length; i++) {
+                            userVecTF[i] /= normTF;
+                        }
+                    }
+
+                    // =====================
+                    // ⭐ ③ 融合计算
+                    // =====================
+                    const alpha = 0.5; // ⭐ 可调（论文可以写参数实验）
+
+                    results = libraryVideos.map(video => {
+
+                        // 情感相似度
+                        let emoScore = cosineSimilarity(userVecEmotion, video.vector);
+
+                        // TF-IDF相似度
+                        let vec = computeTFIDF(video.keywords);
+                        let tfScore = cosineSimilarity(userVecTF, vec);
+
+                        return {
+                            video: video,
+                            score: alpha * emoScore + (1 - alpha) * tfScore,
+                            emoScore: emoScore,
+                            tfScore: tfScore
+                        };
+                    });
+                }
+
+                else if (mode === "tfidf") {
 
                     // ⭐⭐⭐ 加在这里（第一行）
                     if (vocab.length === 0) {
@@ -783,6 +844,11 @@
                         onclick="playVideo('${top1.video.id}')">
 
                     <p>類似度：${(top1.score * 100).toFixed(2)}%</p>
+                    ${mode === "fusion" ? `
+                    <p style="font-size:12px;color:#666">
+                    Emotion: ${(top1.emoScore * 100).toFixed(1)}% /
+                    TF-IDF: ${(top1.tfScore * 100).toFixed(1)}%
+                    </p>` : ""}
                 </div>
             `;
                 if (mode === "emotion") {
@@ -934,7 +1000,7 @@
                     remaining = [...videos];
 
                     // ⭐ TF-IDF 初始化（必须在数据加载后执行）
-                    if (mode === "tfidf") {
+                    if (mode === "tfidf" || mode === "fusion") {
                         buildTFIDF();
 
                         console.log("vocab size:", vocab.length); // 调试用
