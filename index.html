@@ -207,12 +207,25 @@
         <button onclick="startMode('fusion')">Hybrid (Emotion + Content)</button>
     </div>
 
+    <div style="margin-top:20px;">
+        <p>ユーザ選択</p>
+        <button onclick="selectUser(1)">User1</button>
+        <button onclick="selectUser(2)">User2</button>
+        <button onclick="selectUser(3)">User3</button>
+        <button onclick="selectUser(4)">User4</button>
+        <button onclick="selectUser(5)">User5</button>
+        <button onclick="selectUser(6)">User6</button>
+        <button onclick="selectUser(7)">User7</button>
+        <button onclick="selectUser(8)">User8</button>
+        <button onclick="selectUser(9)">User9</button>
+        <button onclick="selectUser(10)">User10</button>
+    </div>
+
     <!-- ===================== -->
     <!-- UI：タイトル・進行表示 -->
     <!-- ===================== -->
     <div id="app" style="display:none;">
         <h2 id="roundTitle">Excel読み込み中...</h2>
-        <p id="progress"></p>
 
         <!-- ===================== -->
         <!-- UI：動画リスト -->
@@ -230,14 +243,20 @@
         <!-- ===================== -->
         <div id="overlay">
             <div id="closeBtn" onclick="closeVideo()">✕</div>
-            <div id="videoModal">
-                <iframe id="player" frameborder="0" allowfullscreen></iframe>
-            </div>
+
+            <iframe id="player" frameborder="0" allowfullscreen></iframe>
+
         </div>
 
         <script>
             let dfMap = {};
             let mode = null;
+            let currentUser = 1;
+
+            function selectUser(n) {
+                currentUser = n;
+                console.log("切换用户:", n);
+            }
 
             function startMode(selectedMode) {
                 mode = selectedMode;
@@ -245,42 +264,25 @@
                 document.getElementById("menu").style.display = "none";
                 document.getElementById("app").style.display = "block";
 
-                // =====================
-                // ⭐ 模式启动入口（系统重置点）
-                // 作用：
-                // 1. 记录当前模式（emotion / tfidf）
-                // 2. 隐藏菜单，显示主界面
-                // 3. 先加载素材库（library.xlsx）
-                // 4. 再加载用户候选视频（data.xlsx）
-                // ⚠️ 顺序不能反，否则 TF-IDF 语料不完整
-                // =====================
+
                 loadLibrary().then(() => {
-                    loadExcel();
+                    loadUserVideos().then(() => {
+                        if (mode === "tfidf" || mode === "fusion") {
+                            buildTFIDF();
+                        }
+                        showResult();
+                    });
                 });
             }
 
             // =====================
             // ⭐ 状态管理（核心数据流）
             // =====================
-            // videos           → 当前轮可选视频（来自 data.xlsx）
-            // remaining        → 剩余未被抽取的视频池
-            // selectedVideos   → 用户选中的3个视频
-            // currentGroup     → 当前轮展示的3个视频
-            // round            → 当前轮数（1~3）
-            // hasSelected      → 当前轮是否已选择（防止重复点击）
-            //
-            // libraryVideos    → 推荐候选库（30个视频）
-            //
+            // libraryVideos → 推荐候选库（99个视频）
             // ⚠️ 注意：
-            // 所有推荐逻辑最终只用 libraryVideos
+            // 推荐基于：用户历史(selectedVideos) vs 候选库(libraryVideos)
             // =====================
 
-            let videos = [];
-            let remaining = [];
-            let selectedVideos = [];
-            let currentGroup = [];
-            let round = 1;
-            let hasSelected = false;
 
             let libraryVideos = []; // ⭐ 新增
 
@@ -295,105 +297,6 @@
                 overlay.style.display = "flex";
             }
 
-            function closeVideo() {
-                const overlay = document.getElementById("overlay");
-                const player = document.getElementById("player");
-
-                if (!hasSelected) return;
-
-                overlay.style.display = "none";
-
-                if (round === 3) {
-                    showResult();
-                } else {
-                    round++;
-                    loadRound();
-                }
-
-                setTimeout(() => {
-                    player.src = "";
-                }, 0);
-            }
-
-            // =====================
-            // ⭐ 随机抽取3个视频（无重复）
-            // 逻辑：
-            // 1. 从 remaining 中随机选
-            // 2. 选中后立即从 remaining 删除
-            // 3. 确保每一轮视频不会重复出现
-            //
-            // ⚠️ remaining 是“消耗型数组”
-            // =====================
-
-            function getRandomGroup() {
-                let group = [];
-
-                for (let i = 0; i < 3; i++) {
-                    let index = Math.floor(Math.random() * remaining.length);
-                    group.push(remaining[index]);
-                    remaining.splice(index, 1);
-                }
-
-                return group;
-            }
-
-            // =====================
-            // ⭐ 用户选择视频（点击行为）
-            // 流程：
-            // 1. 防止重复点击（hasSelected）
-            // 2. 记录当前选择的视频
-            // 3. 立即播放视频（提升体验）
-            // 4. 锁定当前轮（等待关闭视频）
-            //
-            // ⚠️ 下一轮不会在这里触发，而是在 closeVideo()
-            // =====================
-
-            function selectVideo(index) {
-                if (hasSelected) return;
-
-                const video = currentGroup[index];
-
-                console.log("選択された動画番号:", video.label);
-
-                playVideo(video.id); // ⭐ 先播放
-
-                selectedVideos.push(video);
-                hasSelected = true;
-
-            }
-
-            // =====================
-            // ラウンド表示制御
-            // =====================
-            function loadRound() {
-
-                if (round > 3) {
-                    showResult();
-                    return;
-                }
-
-                hasSelected = false;
-
-                document.getElementById("roundTitle").innerText =
-                    "第" + round + "ラウンド";
-
-                document.getElementById("videoList").innerHTML = "";
-
-                currentGroup = getRandomGroup();
-
-                currentGroup.forEach((video, index) => {
-                    let div = document.createElement("div");
-                    div.className = "video-card";
-
-                    div.innerHTML = `
-                    <img src="https://img.youtube.com/vi/${video.id}/0.jpg"
-                         onclick="selectVideo(${index})">
-                    <p><b>${video.label}</b>：${video.title}</p>
-                `;
-
-                    document.getElementById("videoList").appendChild(div);
-                });
-            }
 
             let vocab = [];
             let corpus = [];
@@ -431,10 +334,19 @@
                 return dot / (normA * normB);
             }
 
+            function getExpWeights(n) {
+                let weights = [];
+                for (let i = 0; i < n; i++) {
+                    weights.push(Math.exp(i)); // 越新的权重越大
+                }
+                let sum = weights.reduce((a, b) => a + b, 0);
+                return weights.map(w => w / sum);
+            }
+
             // =====================
             // ⭐ 构建 TF-IDF 语料库（全局初始化）
             // 步骤：
-            // 1. 收集所有文本（videos + libraryVideos）
+            // 1. 收集所有文本（selectedVideos + libraryVideos）
             // 2. 构建词汇表 vocab
             // 3. 统计 DF（词在多少文档出现）
             //
@@ -444,8 +356,8 @@
             function buildTFIDF() {
                 corpus = [];
 
-                videos.forEach(v => corpus.push(v.keywords || ""));
-                libraryVideos.forEach(v => corpus.push(v.keywords || ""));
+                selectedVideos.forEach(v => corpus.push(v.keywords || ""));
+                libraryselectedVideos.forEach(v => corpus.push(v.keywords || ""));
 
                 let set = new Set();
 
@@ -517,347 +429,372 @@
                     let sources = new Set();
 
                     // ⭐ 分解3个用户视频贡献
-                    for (let k = 0; k < 3; k++) {
+                    for (let k = 0; k < selectedVideos.length; k++) {
 
                         let vec = userTFIDFVecs[k];
-                        let weight = [0.2, 0.3, 0.5][k];
+                        let weights = getExpWeights(selectedVideos.length);
 
-                        let contrib = vec[i] * weight;
+                        for (let k = 0; k < selectedVideos.length; k++) {
+                            let weight = weights[k];
 
-                        // ⭐ 改这里：用“词是否出现”判断来源（而不是 TF-IDF）
-                        let words = (selectedVideos[k].keywords || "").split(" ");
+                            let contrib = vec[i] * weight;
 
-                        if (words.includes(word)) {
-                            sources.add(selectedVideos[k].label);
+                            // ⭐ 改这里：用“词是否出现”判断来源（而不是 TF-IDF）
+                            let words = (selectedVideos[k].keywords || "").split(" ");
+
+                            if (words.includes(word)) {
+                                sources.add(selectedVideos[k].label);
+                            }
+
+                            totalContribution += contrib;
                         }
 
-                        totalContribution += contrib;
+                        // 已经在外面算好了
+
+                        let score = totalContribution * topVec[i];
+
+                        if (score > 0) {
+                            contributions.push({
+                                word: word,
+                                value: score,
+                                source: sources.size > 0 ? Array.from(sources) : []
+                            });
+                        }
                     }
 
-                    // 已经在外面算好了
+                    // =====================
+                    // ② 按贡献度从高到低排序
+                    // =====================
+                    contributions.sort((a, b) => b.value - a.value);
 
-                    let score = totalContribution * topVec[i];
+                    // =====================
+                    // ③ 动态选择关键词（累计贡献达到70%为止）
+                    // 目的：
+                    // - 避免固定5个词太少或太多
+                    // - 保证解释覆盖主要相似度来源
+                    // =====================
+                    let total = contributions.reduce((s, c) => s + c.value, 0);
 
-                    if (score > 0) {
-                        contributions.push({
-                            word: word,
-                            value: score,
-                            source: sources.size > 0 ? Array.from(sources) : []
-                        });
+                    // =====================
+                    // ⭐ 异常保护：没有任何贡献词（完全不相似）
+                    // 避免 sum / total 出现 NaN 或除0错误
+                    // =====================
+                    if (total === 0) {
+                        console.warn("没有可解释的关键词（用户与视频无共同词）");
+                        return [];
                     }
+
+                    let sum = 0;
+                    let selected = [];
+
+                    for (let c of contributions) {
+                        selected.push(c);
+                        sum += c.value;
+
+                        // ⭐ 当累计贡献达到70%就停止
+                        if (sum / total >= 0.7) break;
+                    }
+
+                    // =====================
+                    // ④ 返回解释关键词
+                    // =====================
+                    return selected;
                 }
 
                 // =====================
-                // ② 按贡献度从高到低排序
+                // ⭐ 双雷达图（用户 vs Top1）
                 // =====================
-                contributions.sort((a, b) => b.value - a.value);
+                let radarChart = null;
+            }
+                function drawRadarChart(userVec, topVideoVec) {
+
+                    const ctx = document.getElementById("radarChart");
+
+                    if (radarChart) {
+                        radarChart.destroy();
+                    }
+
+                    radarChart = new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: emotionLabels,
+                            datasets: [
+                                {
+                                    label: 'ユーザ',
+                                    data: userVec,
+                                    fill: true
+                                },
+                                {
+                                    label: '推薦Top1',
+                                    data: topVideoVec,
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: false,
+                            scales: {
+                                r: {
+                                    min: 0,
+                                    max: 1
+                                }
+                            }
+                        }
+                    });
+                }
 
                 // =====================
-                // ③ 动态选择关键词（累计贡献达到70%为止）
+                // ⭐ 用户情感向量计算
+                // 逻辑：
+                // - 使用用户历史视频（10个）
+                // - 权重：指数衰减（越新权重越高）
+                // - 最后进行 L2 归一化
+                //
                 // 目的：
-                // - 避免固定5个词太少或太多
-                // - 保证解释覆盖主要相似度来源
+                // 表示用户当前的情绪状态
                 // =====================
-                let total = contributions.reduce((s, c) => s + c.value, 0);
 
-                // =====================
-                // ⭐ 异常保护：没有任何贡献词（完全不相似）
-                // 避免 sum / total 出现 NaN 或除0错误
-                // =====================
-                if (total === 0) {
-                    console.warn("没有可解释的关键词（用户与视频无共同词）");
-                    return [];
-                }
+                const emotionLabels = ["悲しい", "不安", "怒り", "嫌悪", "信頼", "驚き", "嬉しい"];
 
-                let sum = 0;
-                let selected = [];
+                function calcUserVector(selectedVideos) {
 
-                for (let c of contributions) {
-                    selected.push(c);
-                    sum += c.value;
+                    let weights = getExpWeights(selectedVideos.length);
 
-                    // ⭐ 当累计贡献达到70%就停止
-                    if (sum / total >= 0.7) break;
-                }
+                    let result = new Array(7).fill(0);
 
-                // =====================
-                // ④ 返回解释关键词
-                // =====================
-                return selected;
-            }
-
-            // =====================
-            // ⭐ 双雷达图（用户 vs Top1）
-            // =====================
-            let radarChart = null;
-
-            function drawRadarChart(userVec, topVideoVec) {
-
-                const ctx = document.getElementById("radarChart");
-
-                if (radarChart) {
-                    radarChart.destroy();
-                }
-
-                radarChart = new Chart(ctx, {
-                    type: 'radar',
-                    data: {
-                        labels: emotionLabels,
-                        datasets: [
-                            {
-                                label: 'ユーザ',
-                                data: userVec,
-                                fill: true
-                            },
-                            {
-                                label: '推薦Top1',
-                                data: topVideoVec,
-                                fill: true
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: false,
-                        scales: {
-                            r: {
-                                min: 0,
-                                max: 1
-                            }
+                    for (let i = 0; i < selectedVideos.length; i++) {
+                        for (let j = 0; j < 7; j++) {
+                            result[j] += selectedVideos[i].vector[j] * weights[i];
                         }
                     }
-                });
-            }
 
-            // =====================
-            // ⭐ 用户情感向量计算
-            // 逻辑：
-            // - 使用3轮选择的视频
-            // - 权重：旧 → 新 = 0.2 / 0.3 / 0.5
-            // - 最后进行 L2 归一化
-            //
-            // 目的：
-            // 表示用户当前的情绪状态
-            // =====================
+                    let norm = Math.sqrt(result.reduce((s, v) => s + v * v, 0));
 
-            const emotionLabels = ["悲しい", "不安", "怒り", "嫌悪", "信頼", "驚き", "嬉しい"];
-
-            function calcUserVector(selectedVideos) {
-
-                const weights = [0.2, 0.3, 0.5];
-
-                let result = new Array(7).fill(0);
-
-                for (let i = 0; i < 3; i++) {
                     for (let j = 0; j < 7; j++) {
-                        result[j] += selectedVideos[i].vector[j] * weights[i];
-                    }
-                }
-
-                let norm = Math.sqrt(result.reduce((s, v) => s + v * v, 0));
-
-                for (let j = 0; j < 7; j++) {
-                    result[j] /= norm;
-                }
-
-                return result;
-            }
-
-            // =====================
-            // ⭐ 推荐系统核心函数
-            //
-            // 模式分支：
-            // ① emotion → 情感相似度推荐
-            // ② tfidf   → 内容相似度推荐
-            //
-            // 流程：
-            // 1. 构建用户向量
-            // 2. 与 libraryVideos 计算相似度
-            // 3. 排序
-            // 4. 输出 Top5
-            //
-            // ⚠️ Top1 单独展示，其余列表展示
-            // =====================
-
-            function showResult() {
-
-                console.log("🔥 showResult进入");
-
-                let userVec;
-                let userVecTF;   // ⭐ 新增
-
-                if (mode === "emotion") {
-                    userVec = calcUserVector(selectedVideos);
-                }
-
-                document.getElementById("subTitle").style.display = "inline-block";
-
-
-                // =====================
-                // ⭐ 推荐计算
-                // =====================
-                let results;
-
-                if (mode === "emotion") {
-
-                    results = libraryVideos.map(video => ({
-                        video: video,
-                        score: cosineSimilarity(userVec, video.vector)
-                    }));
-
-                } else if (mode === "fusion") {
-
-                    // =====================
-                    // ⭐ 安全检查（必须）
-                    // =====================
-                    if (vocab.length === 0) {
-                        console.error("TF-IDF未初始化");
-                        return;
+                        result[j] /= norm;
                     }
 
-                    // =====================
-                    // ⭐ ① 情感向量
-                    // =====================
-                    let userVecEmotion = calcUserVector(selectedVideos);
+                    return result;
+                }
+
+                // =====================
+                // ⭐ 推荐系统核心函数
+                //
+                // 模式分支：
+                // ① emotion → 情感 + 标签 推荐
+                // ② tfidf   → 内容推荐
+                // ③ fusion  → 综合推荐
+                //
+                // 流程：
+                // 1. 构建用户向量
+                // 2. 与 libraryVideos 计算相似度
+                // 3. 排序
+                // 4. 输出 Top5
+                //
+                // ⚠️ Top1 单独展示，其余列表展示
+                // =====================
+
+                function showResult() {
+
+                    console.log("🔥 showResult进入");
+
+                    let userVec;
+                    let userVecTF;   // ⭐ 新增
+
+                    if (mode === "emotion") {
+                        userVec = calcUserVector(selectedVideos);
+                    }
+
+                    document.getElementById("subTitle").style.display = "inline-block";
+
 
                     // =====================
-                    // ⭐ ② TF-IDF向量
+                    // ⭐ 推荐计算
                     // =====================
-                    let weights = [0.2, 0.3, 0.5];
-                    let userVecTF = new Array(vocab.length).fill(0);
+                    let results;
 
-                    for (let i = 0; i < 3; i++) {
-                        let vec = computeTFIDF(selectedVideos[i].keywords);
+                    if (mode === "emotion") {
 
-                        for (let j = 0; j < vocab.length; j++) {
-                            userVecTF[j] += vec[j] * weights[i];
+                        results = libraryVideos.map(video => {
+
+                            let emoScore = cosineSimilarity(userVec, video.vector);
+
+                            let userTags = selectedVideos.flatMap(v => v.tags);
+                            let videoTags = video.tags || [];
+
+                            let intersection = userTags.filter(t => videoTags.includes(t)).length;
+                            let union = new Set([...userTags, ...videoTags]).size;
+
+                            let tagScore = union === 0 ? 0 : intersection / union;
+
+                            let score = 0.8 * emoScore + 0.2 * tagScore;
+
+                            return {
+                                video: video,
+                                score: score,
+                                emoScore: emoScore,
+                                tagScore: tagScore
+                            };
+                        });
+
+                    } else if (mode === "fusion") {
+
+                        // =====================
+                        // ⭐ 安全检查（必须）
+                        // =====================
+                        if (vocab.length === 0) {
+                            console.error("TF-IDF未初始化");
+                            return;
                         }
+
+                        // =====================
+                        // ⭐ ① 情感向量
+                        // =====================
+                        let userVecEmotion = calcUserVector(selectedVideos);
+
+                        // =====================
+                        // ⭐ ② TF-IDF向量
+                        // =====================
+                        let weights = getExpWeights(selectedVideos.length);
+                        let userVecTF = new Array(vocab.length).fill(0);
+
+                        for (let i = 0; i < selectedVideos.length; i++) {
+                            let vec = computeTFIDF(selectedVideos[i].keywords);
+
+                            for (let j = 0; j < vocab.length; j++) {
+                                userVecTF[j] += vec[j] * weights[i];
+                            }
+                        }
+
+                        // ⭐ 归一化
+                        let normTF = Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0));
+                        if (normTF !== 0) {
+                            for (let i = 0; i < userVecTF.length; i++) {
+                                userVecTF[i] /= normTF;
+                            }
+                        }
+
+                        // =====================
+                        // ⭐ ③ 融合计算
+                        // =====================
+                        const alpha = 0.5; // ⭐ 可调（论文可以写参数实验）
+
+                        results = libraryVideos.map(video => {
+
+                            // 情感相似度
+                            let emoScore = cosineSimilarity(userVecEmotion, video.vector);
+
+                            // TF-IDF相似度
+                            let vec = computeTFIDF(video.keywords);
+                            let tfScore = cosineSimilarity(userVecTF, vec);
+
+                            tfScore = Math.sqrt(tfScore); // ⭐ TF-IDF相似度开根号（压缩高分之间的差距，拉高中低分）
+
+                            return {
+                                video: video,
+                                emoScore: emoScore,
+                                tfScore: tfScore
+                            };
+                        });
+
+                        let emoList = results.map(r => r.emoScore);
+                        let tfList = results.map(r => r.tfScore);
+
+                        let emoMin = Math.min(...emoList);
+                        let emoMax = Math.max(...emoList);
+
+                        let tfMin = Math.min(...tfList);
+                        let tfMax = Math.max(...tfList);
+
+                        results = results.map(r => {
+
+                            let emoNorm = (r.emoScore - emoMin) / (emoMax - emoMin + 1e-8);
+                            let tfNorm = (r.tfScore - tfMin) / (tfMax - tfMin + 1e-8);
+
+                            return {
+                                ...r,
+                                emoNorm,
+                                tfNorm,
+                                score: 0.85 * tfNorm + 0.15 * emoNorm
+                            };
+                        });
+
                     }
 
-                    // ⭐ 归一化
-                    let normTF = Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0));
-                    if (normTF !== 0) {
-                        for (let i = 0; i < userVecTF.length; i++) {
-                            userVecTF[i] /= normTF;
+                    else if (mode === "tfidf") {
+
+                        // ⭐⭐⭐ 加在这里（第一行）
+                        if (vocab.length === 0) {
+                            console.error("TF-IDF未初始化");
+                            return;
                         }
+
+                        let weights = getExpWeights(selectedVideos.length);
+
+                        userVecTF = new Array(vocab.length).fill(0);
+
+                        for (let i = 0; i < selectedVideos.length; i++) {
+                            let vec = computeTFIDF(selectedVideos[i].keywords);
+
+                            for (let j = 0; j < vocab.length; j++) {
+                                userVecTF[j] += vec[j] * weights[i];
+                            }
+                        }
+
+                        // ⭐ L2正規化（超重要）
+                        let norm = Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0));
+
+                        if (norm !== 0) {
+                            for (let i = 0; i < userVecTF.length; i++) {
+                                userVecTF[i] /= norm;
+                            }
+                        }
+
+                        // ⭐ 验证归一化是否成功
+                        console.log("norm userVecTF:", Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0)));
+
+                        results = libraryVideos.map(video => {
+                            let vec = computeTFIDF(video.keywords);
+                            return {
+                                video: video,
+                                vec: vec,
+                                score: cosineSimilarity(userVecTF, vec)
+                            };
+                        });
+
                     }
+
+                    results.sort((a, b) => b.score - a.score);
+
+                    let top5 = results.slice(0, 5);
+                    let top1 = top5[0]; // ⭐ 第一名
+                    let explainWords = [];
+
+                    if (mode === "tfidf" || mode === "fusion") {
+                        explainWords = explainTFIDF(userVecTF, top1.video);
+                    }
+                    let totalValue = explainWords.reduce((s, c) => s + c.value, 0);
+                    // =====================
+                    // ⭐ 关键词来源集合
+                    // =====================
+                    let userWords = new Set(
+                        selectedVideos
+                            .map(v => v.keywords || "")
+                            .join(" ")
+                            .split(" ")
+                    );
+
+                    let top1Words = new Set(
+                        (top1.video.keywords || "").split(" ")
+                    );
+
 
                     // =====================
-                    // ⭐ ③ 融合计算
+                    // ⭐ 主推荐显示（Top1）
                     // =====================
-                    const alpha = 0.5; // ⭐ 可调（论文可以写参数实验）
+                    const mainDiv = document.getElementById("mainResult");
 
-                    results = libraryVideos.map(video => {
-
-                        // 情感相似度
-                        let emoScore = cosineSimilarity(userVecEmotion, video.vector);
-
-                        // TF-IDF相似度
-                        let vec = computeTFIDF(video.keywords);
-                        let tfScore = cosineSimilarity(userVecTF, vec);
-
-                        tfScore = Math.sqrt(tfScore); // ⭐ TF-IDF相似度开根号（压缩高分之间的差距，拉高中低分）
-
-                        return {
-                            video: video,
-                            emoScore: emoScore,
-                            tfScore: tfScore
-                        };
-                    });
-
-                    let emoList = results.map(r => r.emoScore);
-                    let tfList = results.map(r => r.tfScore);
-
-                    let emoMin = Math.min(...emoList);
-                    let emoMax = Math.max(...emoList);
-
-                    let tfMin = Math.min(...tfList);
-                    let tfMax = Math.max(...tfList);
-
-                    results = results.map(r => {
-
-                        let emoNorm = (r.emoScore - emoMin) / (emoMax - emoMin + 1e-8);
-                        let tfNorm = (r.tfScore - tfMin) / (tfMax - tfMin + 1e-8);
-
-                        return {
-                            ...r,
-                            emoNorm,
-                            tfNorm,
-                            score: 0.85 * tfNorm + 0.15 * emoNorm
-                        };
-                    });
-
-                }
-
-                else if (mode === "tfidf") {
-
-                    // ⭐⭐⭐ 加在这里（第一行）
-                    if (vocab.length === 0) {
-                        console.error("TF-IDF未初始化");
-                        return;
-                    }
-
-                    let weights = [0.2, 0.3, 0.5];
-
-                    userVecTF = new Array(vocab.length).fill(0);
-
-                    for (let i = 0; i < 3; i++) {
-                        let vec = computeTFIDF(selectedVideos[i].keywords);
-
-                        for (let j = 0; j < vocab.length; j++) {
-                            userVecTF[j] += vec[j] * weights[i];
-                        }
-                    }
-
-                    // ⭐ L2正規化（超重要）
-                    let norm = Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0));
-
-                    if (norm !== 0) {
-                        for (let i = 0; i < userVecTF.length; i++) {
-                            userVecTF[i] /= norm;
-                        }
-                    }
-
-                    // ⭐ 验证归一化是否成功
-                    console.log("norm userVecTF:", Math.sqrt(userVecTF.reduce((s, v) => s + v * v, 0)));
-
-                    results = libraryVideos.map(video => {
-                        let vec = computeTFIDF(video.keywords);
-                        return {
-                            video: video,
-                            vec: vec,
-                            score: cosineSimilarity(userVecTF, vec)
-                        };
-                    });
-
-                }
-
-                results.sort((a, b) => b.score - a.score);
-
-                let top5 = results.slice(0, 5);
-                let top1 = top5[0]; // ⭐ 第一名
-                let explainWords = explainTFIDF(userVecTF, top1.video);
-                let totalValue = explainWords.reduce((s, c) => s + c.value, 0);
-                // =====================
-                // ⭐ 关键词来源集合
-                // =====================
-                let userWords = new Set(
-                    selectedVideos
-                        .map(v => v.keywords || "")
-                        .join(" ")
-                        .split(" ")
-                );
-
-                let top1Words = new Set(
-                    (top1.video.keywords || "").split(" ")
-                );
-
-
-                // =====================
-                // ⭐ 主推荐显示（Top1）
-                // =====================
-                const mainDiv = document.getElementById("mainResult");
-
-                mainDiv.innerHTML = `
+                    mainDiv.innerHTML = `
                 <div class="main-card">
                     <div class="main-title">あなたへのおすすめ</div>
 
@@ -868,6 +805,10 @@
                         onclick="playVideo('${top1.video.id}')">
 
                     <p>類似度：${(top1.score * 100).toFixed(2)}%</p>
+                    <p style="font-size:12px;color:#666">
+                    Emotion: ${(top1.emoScore * 100).toFixed(1)}% /
+                    Tag: ${(top1.tagScore * 100).toFixed(1)}%
+                    </p>
 
                     ${mode === "fusion" ? `
                     <p style="font-size:12px;color:#666">
@@ -881,15 +822,15 @@
                     ` : ""}
                 </div>
                 `;
-                
-                if (mode === "emotion") {
-                    drawRadarChart(userVec, top1.video.vector);
 
-                } else if (mode === "tfidf") {
+                    if (mode === "emotion") {
+                        drawRadarChart(userVec, top1.video.vector);
 
-                    const radar = document.getElementById("radarChart");
+                    } else if (mode === "tfidf") {
 
-                    radar.outerHTML = `
+                        const radar = document.getElementById("radarChart");
+
+                        radar.outerHTML = `
                     <div style="
                         max-width:400px;
                         margin:30px auto;
@@ -911,19 +852,19 @@
                                 ${c.word} (${totalValue === 0 ? 0 : (c.value / totalValue * 100).toFixed(1)}%)
                                 <span style="color:#666;font-size:12px">
                                     [${(Array.isArray(c.source) ? c.source : [c.source])
-                            .filter(Boolean)
-                            .join(" + ")} × Top1]
+                                .filter(Boolean)
+                                .join(" + ")} × Top1]
                                 </span>
                             </li>
                         `).join("")}
                         </ul>
                     </div>
                     `;
-                } else if (mode === "fusion") {
+                    } else if (mode === "fusion") {
 
-                    const radar = document.getElementById("radarChart");
+                        const radar = document.getElementById("radarChart");
 
-                    radar.outerHTML = `
+                        radar.outerHTML = `
                     <div style="
                         max-width:400px;
                         margin:30px auto;
@@ -949,183 +890,148 @@
 
                     </div>
                     `;
-                }
+                    }
 
-                // =====================
-                // ⭐ 显示到页面
-                // =====================
-                const resultDiv = document.getElementById("resultList");
-                resultDiv.innerHTML = "";
+                    // =====================
+                    // ⭐ 显示到页面
+                    // =====================
+                    const resultDiv = document.getElementById("resultList");
+                    resultDiv.innerHTML = "";
 
-                top5.slice(1).forEach((item, index) => {
+                    top5.slice(1).forEach((item, index) => {
 
-                    const rank = index + 2; // ⭐ 从第2位开始
+                        const rank = index + 2; // ⭐ 从第2位开始
 
-                    const v = item.video;
+                        const v = item.video;
 
-                    let div = document.createElement("div");
-                    div.className = "result-card";
+                        let div = document.createElement("div");
+                        div.className = "result-card";
 
-                    div.innerHTML = `
+                        div.innerHTML = `
                 <p><b>第${rank}位：</b>${v.label} ${v.title}</p>
                 <img src="https://img.youtube.com/vi/${v.id}/0.jpg"
                     onclick="playVideo('${v.id}')">
                 <p>類似度：${(item.score * 100).toFixed(2)}%</p>
             `;
 
-                    resultDiv.appendChild(div);
-                });
+                        resultDiv.appendChild(div);
+                    });
 
-                console.log("===== 推荐Top5 =====");
-                top5.forEach((item, index) => {
-                    console.log(
-                        `第${index + 1}位: ${item.video.label} ${item.video.title} 類似度=${item.score}`
-                    );
-                });
+                    console.log("===== 推荐Top5 =====");
+                    top5.forEach((item, index) => {
+                        console.log(
+                            `第${index + 1}位: ${item.video.label} ${item.video.title} 類似度=${item.score}`
+                        );
+                    });
 
-                const selectedLabels = selectedVideos.map(v => v.label);
-                console.log("ユーザ選択:", selectedLabels.join(", "));
-                console.log("Excel读取向量:", videos);
-                console.log("用户选择:", selectedVideos);
+                    const selectedLabels = selectedVideos.map(v => v.label);
+                    console.log("ユーザ選択:", selectedLabels.join(", "));
+                    console.log("用户数据:", selectedVideos);
 
-                // ⭐ 分模式处理（关键）
-                if (mode === "emotion") {
-                    const labeledVec = userVec.map((v, i) => `${emotionLabels[i]}: ${v}`);
-                    console.log("最终ユーザベクトル:", labeledVec);
+                    // ⭐ 分模式处理（关键）
+                    if (mode === "emotion") {
+                        const labeledVec = userVec.map((v, i) => `${emotionLabels[i]}: ${v}`);
+                        console.log("最终ユーザベクトル:", labeledVec);
 
-                    let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
-                    console.log("ノルム:", norm);
+                        let norm = Math.sqrt(userVec.reduce((s, v) => s + v * v, 0));
+                        console.log("ノルム:", norm);
 
-                } else if (mode === "tfidf") {
-                    console.log("TF-IDF 用户向量长度:", userVecTF.length);
-                }
-
-                document.getElementById("roundTitle").innerText =
-                    "おすすめ結果";
-                document.getElementById("videoList").innerHTML = "";
-
-            }
-
-            // =====================
-            // ⭐ 用户候选视频加载（data.xlsx）
-            //
-            // 职责：
-            // 1. 重置所有状态（防止重复进入污染）
-            // 2. 读取 Excel 数据
-            // 3. 构建 videos / remaining
-            // 4. TF-IDF 模式下初始化 vocab
-            //
-            // ⚠️ 这是整个系统的初始化入口
-            // =====================
-
-            async function loadExcel() {
-                try {
-
-                    // ⚠️ 重置系统状态（必须在读取前执行）                    
-                    videos = [];
-                    remaining = [];
-                    selectedVideos = [];
-                    round = 1;
-
-                    const response = await fetch("./data.xlsx");
-                    if (!response.ok) {
-                        throw new Error("Excel加载失败: " + response.status);
+                    } else if (mode === "tfidf") {
+                        console.log("TF-IDF 用户向量长度:", userVecTF.length);
                     }
 
+                    document.getElementById("roundTitle").innerText =
+                        "おすすめ結果";
+                }
+
+                // =====================
+                // ⭐ 用户历史读取（videos_X.xlsx）
+                // =====================
+                // 职责：
+                // 1. 重置所有状态（防止重复进入污染）
+                // 2. 读取 Excel 数据
+                // 3. TF-IDF 模式下初始化 vocab
+                //
+                // ⚠️ 这是整个系统的初始化入口
+                // =====================
+
+                // =====================
+                // ⭐ 推荐素材库加载（library.xlsx）
+                //
+                // 作用：
+                // - 提供最终推荐候选视频（99个）
+                // - 不参与用户选择轮
+                //
+                // ⚠️ 每次 startMode 都必须重新加载
+                // =====================
+
+                async function loadLibrary() {
+                    try {
+
+                        libraryVideos = [];   // ⚠️ 清空旧数据，防止重复加载
+
+                        const response = await fetch("./library.xlsx");
+
+                        if (!response.ok) {
+                            throw new Error("素材库Excel加载失败");
+                        }
+
+                        const data = await response.arrayBuffer();
+
+                        const workbook = XLSX.read(data, { type: "array" });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                        for (let i = 1; i < json.length; i++) {
+                            let row = json[i];
+
+                            if (!row || row.length < 10) continue;
+
+                            libraryVideos.push({
+                                label: "動画" + row[0],
+                                id: row[2],
+                                title: row[1],
+                                vector: row.slice(3, 10).map(Number),
+                                keywords: row[11],  // 第12列
+                                tags: (row[10] || "").split(",").map(t => t.trim()) // 第11列
+                            });
+                        }
+
+                        console.log("素材库读取完成:", libraryVideos.length);
+
+                    } catch (e) {
+                        console.error(e);
+                    }
+                }
+
+                async function loadUserVideos() {
+
+                    selectedVideos = [];
+
+                    const response = await fetch(`./videos_${currentUser}.xlsx`);
                     const data = await response.arrayBuffer();
 
                     const workbook = XLSX.read(data, { type: "array" });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-
                     const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
                     for (let i = 1; i <= 10; i++) {
+
                         let row = json[i];
 
-                        if (!row || row.length < 10) {
-                            console.log("跳过异常行:", i, row);
-                            continue;
-                        }
-
-                        videos.push({
+                        selectedVideos.push({
                             label: "動画" + row[0],
                             id: row[2],
                             title: row[1],
                             vector: row.slice(3, 10).map(Number),
-                            keywords: row[10]
+
+                            // ⭐ 标签
+                            tags: (row[10] || "").split(",").map(t => t.trim())
                         });
                     }
 
-                    console.log("读取完成:", videos);
-
-                    remaining = [...videos];
-
-                    // ⭐ TF-IDF 初始化（必须在数据加载后执行）
-                    if (mode === "tfidf" || mode === "fusion") {
-                        buildTFIDF();
-
-                        console.log("vocab size:", vocab.length); // 调试用
-                    }
-
-                    document.getElementById("roundTitle").innerText =
-                        "読み込み完了・開始";
-
-                    loadRound();
-
-                } catch (e) {
-                    console.error("❌错误:", e);
-                    document.getElementById("roundTitle").innerText =
-                        "❌ Excel読み込み失敗（F12見て）";
+                    console.log("用户历史:", selectedVideos);
                 }
-            }
-
-            // =====================
-            // ⭐ 推荐素材库加载（library.xlsx）
-            //
-            // 作用：
-            // - 提供最终推荐候选视频（99个）
-            // - 不参与用户选择轮
-            //
-            // ⚠️ 每次 startMode 都必须重新加载
-            // =====================
-
-            async function loadLibrary() {
-                try {
-
-                    libraryVideos = [];   // ⚠️ 清空旧数据，防止重复加载
-
-                    const response = await fetch("./library.xlsx");
-
-                    if (!response.ok) {
-                        throw new Error("素材库Excel加载失败");
-                    }
-
-                    const data = await response.arrayBuffer();
-
-                    const workbook = XLSX.read(data, { type: "array" });
-                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-
-                    for (let i = 1; i < json.length; i++) {
-                        let row = json[i];
-
-                        if (!row || row.length < 10) continue;
-
-                        libraryVideos.push({
-                            label: "動画" + row[0],
-                            id: row[2],
-                            title: row[1],
-                            vector: row.slice(3, 10).map(Number),
-                            keywords: row[10]
-                        });
-                    }
-
-                    console.log("素材库读取完成:", libraryVideos.length);
-
-                } catch (e) {
-                    console.error(e);
-                }
-            }
 
         </script>
 
