@@ -226,9 +226,6 @@
     <!-- ===================== -->
     <div id="app" style="display:none;">
         <h2 id="roundTitle">Excel読み込み中...</h2>
-        <div style="margin-top:20px;">
-            <p>ユーザ選択</p>
-        </div>
         <div class="video-container" id="videoList"></div>
 
         <canvas id="radarChart" width="360" height="360"></canvas>
@@ -586,7 +583,8 @@
             // =====================
 
             function showResult() {
-
+                const radar = document.getElementById("radarChart");
+                const explainBox = document.getElementById("explainBox");
                 console.log("🔥 showResult进入");
 
                 let userVec;
