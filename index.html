@@ -207,7 +207,7 @@
         <button onclick="startMode('fusion')">Hybrid (Emotion + Content)</button>
     </div>
 
-    <div style="margin-top:20px;">
+    <div id="userPanel" style="margin-top:20px; display:none;">
         <p>ユーザ選択</p>
         <button onclick="selectUser(1)">User1</button>
         <button onclick="selectUser(2)">User2</button>
@@ -232,6 +232,7 @@
         <div class="video-container" id="videoList"></div>
 
         <canvas id="radarChart" width="360" height="360"></canvas>
+        <div id="explainBox"></div>
 
         <div id="mainResult"></div> <!-- ⭐ 主推荐 -->
         <h3 id="subTitle">推薦結果 Top5</h3>
@@ -268,20 +269,15 @@
             }
 
             function startMode(selectedMode) {
+
                 mode = selectedMode;
 
                 document.getElementById("menu").style.display = "none";
                 document.getElementById("app").style.display = "block";
+                document.getElementById("userPanel").style.display = "block";
 
+                loadLibrary();
 
-                loadLibrary().then(() => {
-                    loadUserVideos().then(() => {
-                        if (mode === "tfidf" || mode === "fusion") {
-                            buildTFIDF();
-                        }
-                        showResult();
-                    });
-                });
             }
 
             // =====================
@@ -309,6 +305,7 @@
 
             let vocab = [];
             let corpus = [];
+            let radarChart = null;
 
             // =====================
             // ⭐ 余弦相似度（核心相似度计算）
@@ -366,7 +363,7 @@
                 corpus = [];
 
                 selectedVideos.forEach(v => corpus.push(v.keywords || ""));
-                libraryselectedVideos.forEach(v => corpus.push(v.keywords || ""));
+                libraryVideos.forEach(v => corpus.push(v.keywords || ""));
 
                 let set = new Set();
 
@@ -444,11 +441,12 @@
                         let weights = getExpWeights(selectedVideos.length);
 
                         for (let k = 0; k < selectedVideos.length; k++) {
+
+                            let vec = userTFIDFVecs[k];
                             let weight = weights[k];
 
                             let contrib = vec[i] * weight;
 
-                            // ⭐ 改这里：用“词是否出现”判断来源（而不是 TF-IDF）
                             let words = (selectedVideos[k].keywords || "").split(" ");
 
                             if (words.includes(word)) {
@@ -513,7 +511,7 @@
                 // =====================
                 // ⭐ 双雷达图（用户 vs Top1）
                 // =====================
-                let radarChart = null;
+
             }
             function drawRadarChart(userVec, topVideoVec) {
 
@@ -817,13 +815,13 @@
                 `;
 
                 if (mode === "emotion") {
+                    radar.style.display = "block";
                     drawRadarChart(userVec, top1.video.vector);
+                }
 
-                } else if (mode === "tfidf") {
-
-                    const radar = document.getElementById("radarChart");
-
-                    radar.outerHTML = `
+                else if (mode === "tfidf") {
+                    radar.style.display = "none";
+                    explainBox.innerHTML = `
                     <div style="
                         max-width:400px;
                         margin:30px auto;
@@ -833,31 +831,21 @@
                         box-shadow:0 2px 8px rgba(0,0,0,0.1);
                         text-align:left;
                     ">
-                        <b>推薦理由（Top1との一致理由・主要キーワード）</b><br><br>
-                        <div style="margin-bottom:10px;color:#444">
-                            ユーザ選択動画とTop1の共通特徴を、
-                            累積寄与率70%までの主要キーワードで表示：
-                            （各％はこの単語が「類似度」に対して占める寄与割合です。）
-                        </div>
-                        <ul style="padding-left:20px">
+                        <b>推薦理由（Top1との一致理由）</b><br><br>
+                        <ul>
                         ${explainWords.map(c => `
                             <li>
-                                ${c.word} (${totalValue === 0 ? 0 : (c.value / totalValue * 100).toFixed(1)}%)
-                                <span style="color:#666;font-size:12px">
-                                    [${(Array.isArray(c.source) ? c.source : [c.source])
-                            .filter(Boolean)
-                            .join(" + ")} × Top1]
-                                </span>
+                                ${c.word} (${(c.value / totalValue * 100).toFixed(1)}%)
                             </li>
                         `).join("")}
                         </ul>
                     </div>
                     `;
-                } else if (mode === "fusion") {
+                }
 
-                    const radar = document.getElementById("radarChart");
-
-                    radar.outerHTML = `
+                else if (mode === "fusion") {
+                    radar.style.display = "none";
+                    explainBox.innerHTML = `
                     <div style="
                         max-width:400px;
                         margin:30px auto;
@@ -865,22 +853,9 @@
                         padding:15px;
                         border-radius:10px;
                         box-shadow:0 2px 8px rgba(0,0,0,0.1);
-                        text-align:left;
                     ">
-                        <b>Similarity Breakdown</b><br><br>
-
                         Emotion: ${(top1.emoNorm * 100).toFixed(1)}%<br>
-                        <div style="background:#eee;height:8px;border-radius:4px;">
-                            <div style="width:${top1.emoNorm * 100}%;background:#3498db;height:8px;border-radius:4px;"></div>
-                        </div>
-
-                        <br>
-
-                        TF-IDF: ${(top1.tfNorm * 100).toFixed(1)}%<br>
-                        <div style="background:#eee;height:8px;border-radius:4px;">
-                            <div style="width:${top1.tfNorm * 100}%;background:#e67e22;height:8px;border-radius:4px;"></div>
-                        </div>
-
+                        TF-IDF: ${(top1.tfNorm * 100).toFixed(1)}%
                     </div>
                     `;
                 }
