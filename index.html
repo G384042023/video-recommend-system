@@ -273,8 +273,9 @@
                 document.getElementById("app").style.display = "block";
                 document.getElementById("userPanel").style.display = "block";
 
-                loadLibrary();
-
+                loadLibrary().then(() => {
+                    document.getElementById("roundTitle").innerText = "ユーザを選択してください";
+                });
             }
 
             // =====================
@@ -997,6 +998,8 @@
                 }
 
                 console.log("用户历史:", selectedVideos);
+
+                return true;
             }
 
         </script>
