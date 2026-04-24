@@ -341,7 +341,7 @@
             function getExpWeights(n) {
                 let weights = [];
                 for (let i = 0; i < n; i++) {
-                    weights.push(Math.exp(i)); // 越新的权重越大
+                    weights.push(i + 1);
                 }
                 let sum = weights.reduce((a, b) => a + b, 0);
                 return weights.map(w => w / sum);
@@ -609,7 +609,7 @@
 
                         let emoScore = cosineSimilarity(userVec, video.vector);
 
-                        let userTags = selectedVideos.flatMap(v => v.tags);
+                        let userTags = [...new Set(selectedVideos.flatMap(v => v.tags))];
                         let videoTags = video.tags || [];
 
                         let intersection = userTags.filter(t => videoTags.includes(t)).length;
