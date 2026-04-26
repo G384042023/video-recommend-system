@@ -655,8 +655,6 @@
                             tagScore += userWeight * idf / norm;
                         });
 
-                        tagScore += (userTagScore[t] || 0) * (idfMap[t] || 1);
-
                         let score = 0 * emoScore + 1 * tagScore;
 
                         return {
