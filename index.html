@@ -612,10 +612,24 @@
 
                 selectedVideos.forEach((v, i) => {
                     let w = weights[i];
-                    (v.tags || []).forEach(t => {
+                    let uniqueTags = new Set(v.tags || []);
+                    uniqueTags.forEach(t => {
                         userTagScore[t] = (userTagScore[t] || 0) + w;
                     });
                 });
+
+                // =====================
+                // ⭐ Step 2: 归一化（关键）
+                // =====================
+                let norm = Math.sqrt(
+                    Object.values(userTagScore).reduce((s, v) => s + v * v, 0)
+                );
+
+                if (norm !== 0) {
+                    Object.keys(userTagScore).forEach(t => {
+                        userTagScore[t] /= norm;
+                    });
+                }
 
                 const radar = document.getElementById("radarChart");
                 const explainBox = document.getElementById("explainBox");
@@ -650,7 +664,7 @@
 
                         videoTags.forEach(t => {
                             let userWeight = userTagScore[t] || 0;
-                            let idf = idfMap[t] || 1;
+                            let idf = idfMap[t] || 0;
 
                             tagScore += userWeight * idf / norm;
                         });
