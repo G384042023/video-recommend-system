@@ -547,8 +547,10 @@
 
             function calcUserVector(selectedVideos) {
 
+                // ① 时间权重（你现在是线性 1~10）
                 let weights = getExpWeights(selectedVideos.length);
 
+                // ② 加权求和
                 let result = new Array(7).fill(0);
 
                 for (let i = 0; i < selectedVideos.length; i++) {
@@ -557,10 +559,33 @@
                     }
                 }
 
+                // =====================
+                // ⭐ ③ 去均值（核心改动）
+                // =====================
+                let mean = result.reduce((a, b) => a + b, 0) / 7;
+
+                for (let i = 0; i < 7; i++) {
+                    result[i] -= mean;
+                }
+
+                // =====================
+                // ⭐ ④ 情感再平衡（抑制正面）
+                // =====================
+                let emoWeight = [1.2, 1.2, 1.2, 1.2, 0.9, 0.9, 0.9];
+
+                for (let i = 0; i < 7; i++) {
+                    result[i] *= emoWeight[i];
+                }
+
+                // =====================
+                // ⭐ ⑤ 再归一化（必须）
+                // =====================
                 let norm = Math.sqrt(result.reduce((s, v) => s + v * v, 0));
 
-                for (let j = 0; j < 7; j++) {
-                    result[j] /= norm;
+                if (norm !== 0) {
+                    for (let j = 0; j < 7; j++) {
+                        result[j] /= norm;
+                    }
                 }
 
                 return result;
@@ -656,20 +681,38 @@
 
                         let emoScore = cosineSimilarity(userVec, video.vector);
 
-                        let videoTags = video.tags || [];
+                        // =====================
+                        // ⭐ 正确版 Tag Cosine
+                        // =====================
 
-                        let norm = Math.sqrt(videoTags.length || 1);
+                        // ① video 向量
+                        let videoTagScore = {};
 
-                        let tagScore = 0;
-
-                        videoTags.forEach(t => {
-                            let userWeight = userTagScore[t] || 0;
-                            let idf = idfMap[t] || 0;
-
-                            tagScore += userWeight * idf / norm;
+                        (video.tags || []).forEach(t => {
+                            videoTagScore[t] = idfMap[t] || 0;
                         });
 
-                        let score = 0 * emoScore + 1 * tagScore;
+                        // ② L2归一化
+                        let normV = Math.sqrt(
+                            Object.values(videoTagScore).reduce((s, v) => s + v * v, 0)
+                        );
+
+                        if (normV !== 0) {
+                            Object.keys(videoTagScore).forEach(t => {
+                                videoTagScore[t] /= normV;
+                            });
+                        }
+
+                        // ③ cosine
+                        let tagScore = 0;
+
+                        Object.keys(userTagScore).forEach(t => {
+                            tagScore += (userTagScore[t] || 0) * (videoTagScore[t] || 0);
+                        });
+
+                        let alpha = 0.7; // 标签权重
+
+                        let score = alpha * tagScore + (1 - alpha) * emoScore;
 
                         return {
                             video: video,
