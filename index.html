@@ -710,7 +710,7 @@
                             tagScore += (userTagScore[t] || 0) * (videoTagScore[t] || 0);
                         });
 
-                        let alpha = 1; // 标签权重
+                        let alpha = 0.8; // 标签权重
 
                         let score = alpha * tagScore + (1 - alpha) * emoScore;
 
