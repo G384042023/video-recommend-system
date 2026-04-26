@@ -583,7 +583,40 @@
             // ⚠️ Top1 单独展示，其余列表展示
             // =====================
 
+
+            let idfMap = {};
+
+            function buildTagIDF() {
+                let df = {};
+                let N = libraryVideos.length;
+
+                libraryVideos.forEach(v => {
+                    let uniqueTags = new Set(v.tags || []);
+                    uniqueTags.forEach(t => {
+                        df[t] = (df[t] || 0) + 1;
+                    });
+                });
+
+                Object.keys(df).forEach(t => {
+                    idfMap[t] = Math.log(N / (df[t] + 1));
+                });
+
+                console.log("IDF构建完成", idfMap);
+            }
+
             function showResult() {
+                // ⭐ 用户标签加权（加在 showResult 最开头）
+                let weights = getExpWeights(selectedVideos.length);
+
+                let userTagScore = {};
+
+                selectedVideos.forEach((v, i) => {
+                    let w = weights[i];
+                    (v.tags || []).forEach(t => {
+                        userTagScore[t] = (userTagScore[t] || 0) + w;
+                    });
+                });
+
                 const radar = document.getElementById("radarChart");
                 const explainBox = document.getElementById("explainBox");
                 console.log("🔥 showResult进入");
@@ -609,15 +642,22 @@
 
                         let emoScore = cosineSimilarity(userVec, video.vector);
 
-                        let userTags = [...new Set(selectedVideos.flatMap(v => v.tags))];
                         let videoTags = video.tags || [];
 
-                        let intersection = userTags.filter(t => videoTags.includes(t)).length;
-                        let union = new Set([...userTags, ...videoTags]).size;
+                        let norm = Math.sqrt(videoTags.length || 1);
 
-                        let tagScore = union === 0 ? 0 : intersection / union;
+                        let tagScore = 0;
 
-                        let score = 0.2 * emoScore + 0.8 * tagScore;
+                        videoTags.forEach(t => {
+                            let userWeight = userTagScore[t] || 0;
+                            let idf = idfMap[t] || 1;
+
+                            tagScore += userWeight * idf / norm;
+                        });
+
+                        //tagScore += (userTagScore[t] || 0) * (idfMap[t] || 1);
+
+                        let score = 0 * emoScore + 1 * tagScore;
 
                         return {
                             video: video,
@@ -965,6 +1005,10 @@
                     }
 
                     console.log("素材库读取完成:", libraryVideos.length);
+
+                    buildTagIDF();
+
+
 
                 } catch (e) {
                     console.error(e);
