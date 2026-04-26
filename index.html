@@ -617,7 +617,7 @@
 
                         let tagScore = union === 0 ? 0 : intersection / union;
 
-                        let score = 0 * emoScore + 1 * tagScore;
+                        let score = 0.2 * emoScore + 0.8 * tagScore;
 
                         return {
                             video: video,
