@@ -571,7 +571,7 @@
                 // =====================
                 // ⭐ ④ 情感再平衡（抑制正面）
                 // =====================
-                let emoWeight = [3, 3, 3, 3, 0.5, 0.5, 0.5];
+                let emoWeight = [2, 10, 20, 20, 0.5, 0.5, 0.5];
 
                 for (let i = 0; i < 7; i++) {
                     result[i] *= emoWeight[i];
@@ -710,7 +710,7 @@
                             tagScore += (userTagScore[t] || 0) * (videoTagScore[t] || 0);
                         });
 
-                        let alpha = 0.7; // 标签权重
+                        let alpha = 0.8; // 标签权重
 
                         let score = alpha * tagScore + (1 - alpha) * emoScore;
 
