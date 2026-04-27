@@ -547,54 +547,30 @@
 
             function calcUserVector(selectedVideos) {
 
-                // ① 时间权重（你现在是线性 1~10）
                 let weights = getExpWeights(selectedVideos.length);
 
-                // ② 加权求和
                 let result = new Array(7).fill(0);
 
+                // ① 时间加权
                 for (let i = 0; i < selectedVideos.length; i++) {
                     for (let j = 0; j < 7; j++) {
                         result[j] += selectedVideos[i].vector[j] * weights[i];
                     }
                 }
 
-                // =====================
-                // ⭐ ③ 去均值（核心改动）
-                // =====================
-                let mean = result.reduce((a, b) => a + b, 0) / 7;
-
-                for (let i = 0; i < 7; i++) {
-                    result[i] -= mean;
-                }
-
-                // =====================
-                // ⭐ ④ 情感再平衡（抑制正面）
-                // =====================
+                // ② 情感平衡
                 let emoWeight = [2, 10, 20, 20, 0.5, 0.5, 0.5];
 
                 for (let i = 0; i < 7; i++) {
                     result[i] *= emoWeight[i];
                 }
 
-                // =====================
-                // ⭐ ⑤ 再归一化（必须）
-                // =====================
+                // ③ L2归一化（唯一需要的归一化）
                 let norm = Math.sqrt(result.reduce((s, v) => s + v * v, 0));
 
                 if (norm !== 0) {
                     for (let j = 0; j < 7; j++) {
                         result[j] /= norm;
-                    }
-                }
-
-                // ⭐ Step6: 映射回 0~1（关键！）
-                let min = Math.min(...result);
-                let max = Math.max(...result);
-
-                if (max - min !== 0) {
-                    for (let i = 0; i < result.length; i++) {
-                        result[i] = (result[i] - min) / (max - min);
                     }
                 }
 
@@ -1064,9 +1040,20 @@
                             id: row[2],
                             title: row[1],
                             vector: row.slice(3, 10).map(Number),
-                            keywords: row[11],  // 第12列
-                            tags: (row[10] || "").split(",").map(t => t.trim()) // 第11列
+                            keywords: row[11],
+                            tags: (row[10] || "").split(",").map(t => t.trim())
                         });
+
+                        // ⭐ 归一化
+                        let v = libraryVideos[libraryVideos.length - 1].vector;
+
+                        let norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0));
+
+                        if (norm !== 0) {
+                            for (let j = 0; j < v.length; j++) {
+                                v[j] /= norm;
+                            }
+                        }
                     }
 
                     console.log("素材库读取完成:", libraryVideos.length);
@@ -1095,13 +1082,23 @@
 
                     let row = json[i];
 
+                    // ⭐ 取情感向量
+                    let vec = row.slice(3, 10).map(Number);
+
+                    // ⭐ L2归一化（关键）
+                    let norm = Math.sqrt(vec.reduce((s, x) => s + x * x, 0));
+
+                    if (norm !== 0) {
+                        for (let j = 0; j < vec.length; j++) {
+                            vec[j] /= norm;
+                        }
+                    }
+
                     selectedVideos.push({
                         label: "動画" + row[0],
                         id: row[2],
                         title: row[1],
-                        vector: row.slice(3, 10).map(Number),
-
-                        // ⭐ 标签
+                        vector: vec,
                         tags: (row[10] || "").split(",").map(t => t.trim())
                     });
                 }
