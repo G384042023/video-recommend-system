@@ -588,6 +588,16 @@
                     }
                 }
 
+                // ⭐ Step6: 映射回 0~1（关键！）
+                let min = Math.min(...result);
+                let max = Math.max(...result);
+
+                if (max - min !== 0) {
+                    for (let i = 0; i < result.length; i++) {
+                        result[i] = (result[i] - min) / (max - min);
+                    }
+                }
+
                 return result;
             }
 
