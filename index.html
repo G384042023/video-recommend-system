@@ -696,8 +696,7 @@
                             tagScore += (userTagScore[t] || 0) * (videoTagScore[t] || 0);
                         });
 
-                        let alpha = 0.75; // 标签权重
-
+                        let alpha = 0.75; // タブ重み
                         let score = alpha * tagScore + (1 - alpha) * emoScore;
 
                         return {
