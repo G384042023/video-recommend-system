@@ -338,6 +338,24 @@
                 return dot / (normA * normB);
             }
 
+            // =====================
+            // ⭐ 情感差异惩罚
+            // 差异越大 → penalty越大
+            // =====================
+
+            function emotionPenalty(a, b) {
+
+                let diff = 0;
+
+                for (let i = 0; i < a.length; i++) {
+
+                    diff += Math.abs(a[i] - b[i]);
+
+                }
+
+                return diff;
+            }
+
             function getExpWeights(n) {
                 let weights = [];
                 for (let i = 0; i < n; i++) {
@@ -665,7 +683,25 @@
 
                     results = libraryVideos.map(video => {
 
-                        let emoScore = cosineSimilarity(userVec, video.vector);
+                        // =====================
+                        // ⭐ ① cosine相似度
+                        // =====================
+
+                        let cosScore = cosineSimilarity(userVec, video.vector);
+
+                        // =====================
+                        // ⭐ ② 差异惩罚
+                        // =====================
+
+                        let penalty = emotionPenalty(userVec, video.vector);
+
+                        // =====================
+                        // ⭐ ③ 最终emotion score
+                        // =====================
+
+                        let lambda = 0.15;
+
+                        let emoScore = cosScore - lambda * penalty;
 
                         // =====================
                         // ⭐ 正确版 Tag Cosine
@@ -701,8 +737,15 @@
 
                         return {
                             video: video,
+
                             score: score,
+
                             emoScore: emoScore,
+
+                            cosScore: cosScore,
+
+                            penalty: penalty,
+
                             tagScore: tagScore
                         };
                     });
@@ -878,6 +921,10 @@
                     <p style="font-size:12px;color:#666">
                     Emotion: ${(top1.emoScore * 100).toFixed(1)}% /
                     Tag: ${(top1.tagScore * 100).toFixed(1)}%
+                    <br>
+                    Cosine: ${(top1.cosScore * 100).toFixed(1)}%
+                    <br>
+                    Penalty: ${top1.penalty.toFixed(3)}
                     </p>
 
                     ${mode === "fusion" ? `
