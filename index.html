@@ -157,22 +157,29 @@
             background: rgba(0, 0, 0, 0.8);
 
             display: none;
-            /* ⭐ 关键！没有这个就会挡住页面 */
 
             justify-content: center;
             align-items: center;
 
             z-index: 1000;
+
+            padding: 30px;
+            box-sizing: border-box;
         }
 
         #videoModal {
-            width: 80%;
-            max-width: 800px;
+
+            width: 90%;
+            max-width: 1400px;
+
         }
 
         #videoModal iframe {
+
             width: 100%;
-            height: 450px;
+            height: 78vh;
+
+            border-radius: 12px;
         }
 
         #closeBtn {
@@ -239,9 +246,15 @@
         <!-- UI：動画再生モーダル -->
         <!-- ===================== -->
         <div id="overlay">
+
             <div id="closeBtn" onclick="closeVideo()">✕</div>
 
-            <iframe id="player" frameborder="0" allowfullscreen></iframe>
+            <div id="videoModal">
+
+                <iframe id="player" frameborder="0" allowfullscreen>
+                </iframe>
+
+            </div>
 
         </div>
 
