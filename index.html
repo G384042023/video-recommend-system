@@ -300,6 +300,18 @@
                 overlay.style.display = "flex";
             }
 
+            function closeVideo() {
+
+                const overlay = document.getElementById("overlay");
+
+                const player = document.getElementById("player");
+
+                // ⭐ 关闭弹窗
+                overlay.style.display = "none";
+
+                // ⭐ 停止视频播放（关键）
+                player.src = "";
+            }
 
             let vocab = [];
             let corpus = [];
@@ -635,12 +647,30 @@
 
             function showResult() {
                 // ⭐ 用户标签加权（加在 showResult 最开头）
+                // emotion 用（保持强时间权重）
                 let weights = getExpWeights(selectedVideos.length);
+
+                // =====================
+                // ⭐ tag 专用弱时间权重
+                // =====================
+
+                let tagWeights = [
+                    0.07,
+                    0.08,
+                    0.09,
+                    0.09,
+                    0.10,
+                    0.10,
+                    0.11,
+                    0.11,
+                    0.12,
+                    0.13
+                ];
 
                 let userTagScore = {};
 
                 selectedVideos.forEach((v, i) => {
-                    let w = weights[i];
+                    let w = tagWeights[i];
                     let uniqueTags = new Set(v.tags || []);
                     uniqueTags.forEach(t => {
                         userTagScore[t] = (userTagScore[t] || 0) + w;
@@ -919,12 +949,15 @@
 
                     <p>類似度：${(top1.score * 100).toFixed(2)}%</p>
                     <p style="font-size:12px;color:#666">
-                    Emotion: ${(top1.emoScore * 100).toFixed(1)}% /
-                    Tag: ${(top1.tagScore * 100).toFixed(1)}%
+
+                    Cosine Similarity:
+                    ${top1.cosScore.toFixed(3)}
+
                     <br>
-                    Cosine: ${(top1.cosScore * 100).toFixed(1)}%
-                    <br>
-                    Penalty: ${top1.penalty.toFixed(3)}
+
+                    Emotion Penalty:
+                    ${top1.penalty.toFixed(3)}
+
                     </p>
 
                     ${mode === "fusion" ? `
