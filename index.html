@@ -960,16 +960,39 @@
                     <img src="https://img.youtube.com/vi/${top1.video.id}/0.jpg"
                         onclick="playVideo('${top1.video.id}')">
 
-                    <p>類似度：${(top1.score * 100).toFixed(2)}%</p>
-                    <p style="font-size:12px;color:#666">
+                    <p style="
+                    font-size:28px;
+                    font-weight:bold;
+                    margin-top:20px;
+                    color:#2c3e50;
+                    ">
 
-                    Cosine Similarity:
+                    Tag Similarity:
+                    ${top1.tagScore.toFixed(3)}
+
+                    </p>
+
+                    <p style="font-size:12px;color:#666; line-height:1.8;">
+
+                    EmotionScore
+                    =
                     ${top1.cosScore.toFixed(3)}
+                    - 0.15 × ${top1.penalty.toFixed(3)}
 
                     <br>
 
-                    Emotion Penalty:
-                    ${top1.penalty.toFixed(3)}
+                    = ${top1.emoScore.toFixed(3)}
+
+                    <br><br>
+
+                    FinalScore
+                    =
+                    0.75 × ${top1.tagScore.toFixed(3)}
+                    + 0.25 × ${top1.emoScore.toFixed(3)}
+
+                    <br>
+
+                    = ${top1.score.toFixed(3)}
 
                     </p>
 
