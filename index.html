@@ -961,14 +961,24 @@
                         onclick="playVideo('${top1.video.id}')">
 
                     <p style="
-                    font-size:28px;
-                    font-weight:bold;
+                    font-size:14px;
+                    color:#666;
+                    line-height:1.8;
                     margin-top:20px;
-                    color:#2c3e50;
                     ">
 
-                    Tag Similarity:
+                    Tag Similarity :
                     ${top1.tagScore.toFixed(3)}
+
+                    <br>
+
+                    Emotion Score :
+                    ${top1.emoScore.toFixed(3)}
+
+                    <br>
+
+                    Final Score :
+                    ${top1.score.toFixed(3)}
 
                     </p>
 
