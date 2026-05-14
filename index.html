@@ -363,19 +363,27 @@
                 return dot / (normA * normB);
             }
 
-            // =====================
-            // ⭐ 情感差异惩罚
-            // 差异越大 → penalty越大
-            // =====================
-
             function emotionPenalty(a, b) {
 
                 let diff = 0;
 
                 for (let i = 0; i < a.length; i++) {
 
-                    diff += Math.abs(a[i] - b[i]);
+                    let d = a[i] - b[i];
 
+                    // 用户情感高，但视频低 → 强惩罚
+                    if (d > 0) {
+
+                        diff += d * 1.5;
+
+                    }
+
+                    // 视频高于用户 → 弱惩罚
+                    else {
+
+                        diff += Math.abs(d) * 0.7;
+
+                    }
                 }
 
                 return diff;
